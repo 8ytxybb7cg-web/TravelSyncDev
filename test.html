@@ -1101,8 +1101,8 @@
           </div>
       </div>
 
-            <div v-if="currentTab === '行程'">
-          <button v-if="selectedDay === 'prep'" @click="openPreNoteModal()" class="floating-add-btn bg-[#34C759]">
+                        <div v-if="currentTab === '行程'">
+          <button v-if="selectedDay === 'prep'" @click="openPreNoteModal()" class="floating-add-btn bg-[#34C759] fixed bottom-[100px] right-5 z-40">
               <i class="ph-bold ph-plus"></i>
           </button>
           <button v-else @click="openItineraryModal(null)" class="floating-add-btn bg-[#007AFF]">
