@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync Dev14.03</title>
+  <title>Travel Sync Dev14.04</title>
 
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#007AFF">
@@ -520,8 +520,10 @@
                    
                    <div class="mt-1 pt-1 border-t border-gray-200/30">
                           <div class="relative flex items-center justify-end">
-    <div class="inline-flex max-w-full items-center justify-end
-            rounded-full
+                              <div class="relative flex items-center justify-end">
+    <div id="quick-est-wrapper" class="inline-flex max-w-full items-center justify-end
+            
+rounded-full
             bg-gray-100/70
             px-3 py-1
             border border-gray-300/40
@@ -557,9 +559,10 @@
                        <div class="ios-card p-3 relative group overflow-hidden h-full flex flex-col justify-between">
                 <div class="flex justify-between items-start">
                     <i :class="weatherIconClass" class="text-[3.5rem] leading-none text-gray-800/80 drop-shadow-sm -ml-1 mt-1"></i>
-                                                            <div class="text-right z-10 ml-2 flex-1 min-w-0" style="container-type: inline-size;">
-                       <span class="font-bold text-gray-600 uppercase block whitespace-nowrap text-[clamp(20px,12cqw,20px)]">
-                           {{ lang === 'zh' ? (settings.weatherLoc || 'Taipei') : (settings.weatherLocEn || settings.weatherLoc || 'Taipei') }}
+                                                                                <div class="text-right z-10 ml-2 flex-1 min-w-0" style="container-type: inline-size;">
+                       <span class="font-bold text-gray-600 uppercase block whitespace-nowrap text-[clamp(14px,12cqw,24px)]">
+                        
+   {{ lang === 'zh' ? (settings.weatherLoc || 'Taipei') : (settings.weatherLocEn || settings.weatherLoc || 'Taipei') }}
                        </span>
                     </div>
                 </div>
@@ -1029,7 +1032,7 @@
              <p>{{ t('noItems') }}</p>
           </div>
         
-          <button @click="openShoppingModal()" class="floating-add-btn bg-pink-500">
+                    <button @click="openShoppingModal()" class="floating-add-btn bg-pink-500 fixed bottom-[100px] right-5 z-40">
              <i class="ph-bold ph-plus"></i>
           </button>
       </div>
@@ -1475,7 +1478,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
     createApp({
       setup() {
         // --- 1. App State & Core Config ---
-        const appVersion = ref('v260208-14.03');
+        const appVersion = ref('v260208-14.04');
         const currentTab = ref('首頁');
         const syncState = ref('loading');
         const isInitialized = ref(false);
@@ -2576,8 +2579,18 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             }, 250);
         }
 
-        // --- 13. Lifecycle Hooks ---
+                // --- 13. Lifecycle Hooks ---
         onMounted(() => {
+            // Bug Fix 2: Global Click to Clear Quick Calc
+            document.addEventListener('click', (e) => {
+                if (quickEstAmount.value === '') return;
+                const wrapper = document.getElementById('quick-est-wrapper');
+                // 若點擊目標不在輸入框容器內，則清空
+                if (wrapper && !wrapper.contains(e.target)) {
+                    clearQuickEstOnRateCardBg();
+                }
+            });
+
             runIntroSequence();
             Object.assign(editingSettings, settings);
             initApp().then(() => {
