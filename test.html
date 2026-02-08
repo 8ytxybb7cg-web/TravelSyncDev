@@ -1029,14 +1029,14 @@ rounded-full
 
           </div>
           
-          <div v-if="shoppingList.length === 0" class="py-10 text-center text-sm text-gray-400">
+                    <div v-if="shoppingList.length === 0" class="py-10 text-center text-sm text-gray-400">
              <p>{{ t('noItems') }}</p>
           </div>
-        
-                    <button @click="openShoppingModal()" class="floating-add-btn bg-pink-500 fixed bottom-[100px] right-5 z-40">
-             <i class="ph-bold ph-plus"></i>
-          </button>
       </div>
+
+      <button v-if="currentTab === '購物'" @click="openShoppingModal()" class="floating-add-btn bg-pink-500 fixed bottom-[100px] right-5 z-40">
+          <i class="ph-bold ph-plus"></i>
+      </button>
 
                      <div v-if="currentTab === '設定'" class="animate-fade-in pb-24">
          <div class="ios-card p-5 space-y-6">
