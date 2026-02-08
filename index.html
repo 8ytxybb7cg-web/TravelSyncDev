@@ -2460,7 +2460,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
         }
         async function saveActiveTripId() {
             if (!newTripIdInput.value) return;
-            const { error } = await supabaseClient.from('app_config').update({ active_trip_id: newTripIdInput.value }).eq('id', 1);
+            const { error } = await supabaseClient.from('app_config').update({ active_trip_id: newTripIdInput.value }).eq('id', 2);
             if (!error) { tripId.value = newTripIdInput.value; location.reload(); } 
             else { alert('Update Failed'); }
         }
@@ -2469,7 +2469,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
         async function initApp() {
             syncState.value = 'loading';
             try {
-                const { data, error } = await supabaseClient.from('app_config').select('active_trip_id').eq('id', 1).single();
+                const { data, error } = await supabaseClient.from('app_config').select('active_trip_id').eq('id', 2).single();
                 if (error || !data?.active_trip_id) throw new Error('Config Error');
                 tripId.value = data.active_trip_id;
                 await fetchCloud();
