@@ -519,9 +519,11 @@
                                       <div class="text-[9px] text-gray-400 mt-1 font-mono">{{ t('feeIncluded') }} • {{ lastRateUpdateLabel }}</div>
                    
                    <div class="mt-1 pt-1 border-t border-gray-200/30">
-                          <div class="relative flex items-center justify-end">
-    <div class="inline-flex max-w-full items-center justify-end
-            rounded-full
+                                                    <div class="relative flex items-center justify-end">
+    <div id="quick-est-wrapper" class="inline-flex max-w-full items-center justify-end
+            
+rounded-full
+
             bg-gray-100/70
             px-3 py-1
             border border-gray-300/40
@@ -2577,10 +2579,21 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             }, 250);
         }
 
-        // --- 13. Lifecycle Hooks ---
+                // --- 13. Lifecycle Hooks ---
         onMounted(() => {
+            // Bug Fix 2: Global Click to Clear Quick Calc
+            document.addEventListener('click', (e) => {
+                if (quickEstAmount.value === '') return;
+                const wrapper = document.getElementById('quick-est-wrapper');
+                // 若點擊目標不在輸入框容器內，則清空
+                if (wrapper && !wrapper.contains(e.target)) {
+                    clearQuickEstOnRateCardBg();
+                }
+            });
+
             runIntroSequence();
             Object.assign(editingSettings, settings);
+
             initApp().then(() => {
                                 introAppReady.value = true;
                 fetchRate(); fetchWeather(); startPillLoop();
