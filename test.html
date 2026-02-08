@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync v15.00</title>
+  <title>Travel Sync Dev14.02</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -234,32 +234,6 @@
 }
     .bounce-right { animation: bounce-limit-right 0.3s cubic-bezier(0.25, 0.8, 0.5, 1);
 }
-
-    /* AI Feature Styles */
-    .ai-capsule {
-      position: relative; display: flex; align-items: center; gap: 8px;
-      padding: 6px 16px; margin: 16px auto; width: fit-content;
-      border-radius: 50px; border: 1px solid rgba(255, 255, 255, 0.6);
-      background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(12px) saturate(150%);
-      box-shadow: 0 4px 12px rgba(0, 122, 255, 0.15);
-      font-size: 12px; font-weight: 600; color: #007AFF;
-      transition: all 0.2s; z-index: 5;
-    }
-    .ai-capsule:active { transform: scale(0.96); background: rgba(255, 255, 255, 0.6); }
-        .ai-capsule::before {
-        content: ''; position: absolute; top: -16px; bottom: -16px; left: 50%; width: 1px;
-        background: linear-gradient(to bottom, transparent, rgba(0, 122, 255, 0.3), transparent);
-        border-left: 1px dashed rgba(0, 122, 255, 0.4); z-index: -1;
-    }
-    .ai-capsule.no-line::before { display: none; }
-
-    .ai-suggestion-card {
-        background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px) saturate(180%);
-        border: 1px solid rgba(255, 255, 255, 0.6); box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-        border-radius: 24px; padding: 20px;
-    }
-    .ai-sparkle { animation: sparkle 2s infinite; }
-    @keyframes sparkle { 0%, 100% { opacity: 0.5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.2); } }
 
     /* --- Intro Loading Layer (Sketch Style) --- */
     .intro-layer {
@@ -816,17 +790,10 @@
 
              <div v-else>
                  <div class="relative pl-4 border-l-2 border-gray-300/50 ml-3 space-y-3 py-2">
-                                                <div v-for="(it, idx) in sortedItinerary" :key="it.id"
+                        <div v-for="it in sortedItinerary" :key="it.id"
                           @click="showLocationOnMap(it)"
+     
                           class="relative group cursor-pointer">
-                            <div v-if="idx < sortedItinerary.length - 1 && calculateGap(it.time, sortedItinerary[idx+1].time) >= 240" 
-                                 class="flex justify-center -my-2 relative z-20" @click.stop>
-                                <button @click="triggerGapFill(it, sortedItinerary[idx+1])" class="ai-capsule">
-                                    <i class="ph-fill ph-magic-wand"></i>
-                                    <span>空閒 {{ Math.floor(calculateGap(it.time, sortedItinerary[idx+1].time)/60) }} 小時，查看建議</span>
-                                </button>
-                            </div>
-
                         <div class="absolute -left-[23px] top-1 w-3.5 h-3.5 rounded-full bg-white border-[3px] border-gray-300 group-hover:border-[#007AFF] transition-colors z-10 shadow-sm"></div>
                    
                         <div class="bg-white/70 backdrop-blur-xl rounded-2xl p-3 border border-white/60 shadow-sm transition-all 
@@ -867,20 +834,11 @@
 
                  </div>
                  
-                                  <div v-if="sortedItinerary.length === 0" class="py-12 flex flex-col items-center justify-center text-center">
-                    <div v-if="!isAiLoading">
-                        <i class="ph ph-coffee text-3xl mb-2 block text-gray-300"></i>
-                        <p class="text-sm text-gray-400 mb-4">{{ t('noItems') }}</p>
-                        <button v-if="!hasAiGenerated" @click="triggerColdStart" class="ai-capsule no-line !m-0 !text-[#007AFF] !border-[#007AFF]/30">
-
-                            <i class="ph-fill ph-sparkle ai-sparkle"></i> AI 智能生成行程
-                        </button>
-                    </div>
-                    <div v-else class="flex flex-col items-center gap-3">
-                        <i class="ph-bold ph-spinner animate-spin text-2xl text-[#007AFF]"></i>
-                        <span class="text-xs font-bold text-[#007AFF] animate-pulse">AI 正在規劃中...</span>
-                    </div>
-                 </div>
+                 <p v-if="sortedItinerary.length === 0" class="py-12 text-center text-gray-400 text-sm">
+                    <i class="ph ph-coffee text-3xl mb-2 block text-gray-300"></i>
+          
+                 今日無行程，享受自由時光
+                 </p>
              </div>
         </div>
 
@@ -1081,7 +1039,7 @@
              </div>
              <div>
                  <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('routeHeader') }}</label>
-                 <input v-model="editingSettings.route" class="ios-input font-bold" placeholder="HKG <i class="ph ph-airplane-tilt"></i> TPE">
+                 <input v-model="editingSettings.route" class="ios-input font-bold" placeholder="HKG ✈️ KIX">
              </div>
              <div class="grid grid-cols-2 gap-4">
                  <div><label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('startDate') }}</label><input v-model="editingSettings.startDate" type="date" class="ios-input"></div>
@@ -1452,44 +1410,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
         </div>
     </div>
 
-        <transition name="fade">
-        <div v-if="aiModalOpen" class="modal-backdrop" @click.self="aiModalOpen=false">
-            <div class="ios-modal-container" style="max-height: 80vh;">
-                <div class="ios-modal-header border-b-0 pb-0">
-                    <div class="flex flex-col items-center gap-1">
-                        <i class="ph-fill ph-sparkle text-[#007AFF] text-2xl ai-sparkle"></i>
-                        <span class="font-bold text-lg text-slate-800">AI 推薦行程</span>
-                    </div>
-                </div>
-                <div class="ios-modal-body space-y-3 p-4">
-                     <div v-if="isAiLoading" class="py-10 text-center flex flex-col items-center gap-3">
-                        <i class="ph-bold ph-spinner animate-spin text-3xl text-[#007AFF]"></i>
-                        <span class="text-xs font-bold text-gray-400">正在搜尋附近好去處...</span>
-                     </div>
-                     <div v-else class="space-y-3">
-                        <div v-for="(sugg, i) in aiSuggestions" :key="i" class="ai-suggestion-card relative group hover:bg-white/50 transition-colors p-4 border border-blue-100/50">
-                            <div class="flex justify-between items-start mb-1">
-                                <span class="text-xs font-mono font-bold text-[#007AFF] bg-blue-50 px-2 py-0.5 rounded">{{ sugg.time }}</span>
-                                <button @click="acceptAiSuggestion(sugg)" class="text-xs font-bold text-white bg-[#007AFF] px-3 py-1 rounded-full shadow-lg shadow-blue-500/30 active:scale-95 transition-transform">
-                                    <i class="ph-bold ph-plus"></i> 加入
-                                </button>
-                            </div>
-                            <h4 class="font-bold text-slate-800 mb-1">{{ sugg.title }}</h4>
-                            <p class="text-xs text-gray-500 leading-relaxed">{{ sugg.note }}</p>
-                            <div class="mt-2 flex items-center gap-1 text-[10px] text-gray-400">
-                                <i class="ph-fill ph-map-pin"></i> {{ sugg.address }}
-                            </div>
-                        </div>
-                     </div>
-                </div>
-                <div class="ios-modal-footer">
-                    <button @click="aiModalOpen=false" class="btn-ios-cancel">關閉</button>
-                </div>
-            </div>
-        </div>
-    </transition>
-
-<div v-if="adminEditOpen" class="modal-backdrop">
+    <div v-if="adminEditOpen" class="modal-backdrop">
         <div class="ios-modal-container" style="max-width: 320px;">
             <div class="ios-modal-header">Active Trip ID</div>
             <div class="ios-modal-body space-y-3">
@@ -1549,7 +1470,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
     createApp({
       setup() {
         // --- 1. App State & Core Config ---
-        const appVersion = ref('v260208-15.00');
+        const appVersion = ref('v260118-14.02');
         const currentTab = ref('首頁');
         const syncState = ref('loading');
         const isInitialized = ref(false);
@@ -1580,123 +1501,9 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             return '準備出發～就快得啦';
         });
 
-                // --- AI Feature Logic ---
-        const aiModalOpen = ref(false);
-        const isAiLoading = ref(false);
-        const aiSuggestions = ref([]);
-        const hasAiGenerated = ref(false); // Flag to prevent duplicate cold start
-
-        // Gap Calculation
-        const calculateGap = (t1, t2) => {
-            if(!t1 || !t2) return 0;
-            const toMins = (s) => { const [h,m]=s.split(':').map(Number); return h*60+m; };
-            return toMins(t2) - toMins(t1);
-        };
-
-        // Edge Function Callers
-        const callEdgeFunction = async (funcName, body) => {
-            const { data, error } = await supabaseClient.functions.invoke(funcName, { body });
-            if (error) throw error;
-            return data;
-        };
-
-        // 1. Cold Start Logic
-        const triggerColdStart = async () => {
-            if(!tripId.value) return;
-            isAiLoading.value = true;
-            try {
-                // Determine destination from settings or first flight
-                const dest = settings.weatherLoc || (flights.outbound ? flights.outbound.toCode : 'Japan');
-                const result = await callEdgeFunction('generate-itinerary', { 
-                    destination: dest, 
-                    days: 3 // Default as per requirement
-                });
-                
-                if (Array.isArray(result)) {
-                    // Cold start fills the first few days
-                    result.forEach(item => {
-                         // Default logic from previous turn: handleAddAiSuggestion (inline simplified)
-                         const dayIdx = item.dayIndex || 0;
-                         if(dayIdx < itinerary.length) {
-                             handleAddAiSuggestion(item, dayIdx, itinerary);
-                         }
-                    });
-                    hasAiGenerated.value = true;
-                    saveAll();
-                    showToast('行程已自動生成！');
-                }
-            } catch (e) {
-                console.error(e);
-                showToast('AI 生成失敗，請稍後再試');
-            } finally {
-                isAiLoading.value = false;
-            }
-        };
-
-        // 2. Gap Filling Logic
-        const triggerGapFill = async (prevItem, nextItem) => {
-            isAiLoading.value = true;
-            aiSuggestions.value = [];
-            aiModalOpen.value = true;
-            try {
-                const dest = settings.weatherLoc || 'Local';
-                const suggestions = await callEdgeFunction('suggest-gap-fill', {
-                    destination: dest,
-                    startTime: prevItem.time,
-                    endTime: nextItem.time,
-                    context: {
-                        previous: prevItem.title,
-                        next: nextItem.title,
-                        address: prevItem.address
-                    }
-                });
-                if(Array.isArray(suggestions)) {
-                    aiSuggestions.value = suggestions;
-                }
-            } catch (e) {
-                 showToast('無法取得建議');
-                 aiModalOpen.value = false;
-            } finally {
-                isAiLoading.value = false;
-            }
-        };
-
-        // 3. Insert Payload Handler (From Requirement)
-        const handleAddAiSuggestion = (suggestion, dayIdx, currentItinerary) => {
-             const sanitizeTime = (timeStr) => {
-                if(!timeStr) return "12:00";
-                const [hrs, mins] = timeStr.split(':');
-                return `${hrs.padStart(2, '0')}:${mins.padStart(2, '0')}`;
-             };
-             
-             const newEntry = {
-                ...suggestion,
-                id: `${Date.now()}${Math.random().toString(36).substring(2, 9)}`,
-                time: sanitizeTime(suggestion.time),
-                dayIndex: dayIdx,
-                colorClass: "border-blue-400", // Default AI color
-                is_ai_generated: true
-             };
-
-             if (!currentItinerary[dayIdx]) currentItinerary[dayIdx] = [];
-             currentItinerary[dayIdx].push(newEntry);
-             currentItinerary[dayIdx].sort((a, b) => (a.time||'').localeCompare(b.time||''));
-        };
-
-        const acceptAiSuggestion = (sugg) => {
-            // Suggestion card doesn't have dayIndex, use current selectedDay
-            const dIdx = typeof selectedDay.value === 'number' ? selectedDay.value : 0;
-            handleAddAiSuggestion(sugg, dIdx, itinerary);
-            saveAll();
-            showToast('已加入行程');
-            // Remove from list to avoid double add
-            aiSuggestions.value = aiSuggestions.value.filter(x => x !== sugg);
-            if(aiSuggestions.value.length === 0) aiModalOpen.value = false;
-        };
-
         // --- 2. Data Models ---
         const settings = reactive({
-            route: 'HKG <i class="ph ph-airplane-tilt"></i> TPE', startDate: '2026-03-22', endDate: '2026-03-27',
+            route: 'HKG ✈️ KIX', startDate: '2026-03-22', endDate: '2026-03-27',
                         localCurrency: 'TWD', homeCurrency: 'HKD', weatherLoc: '台北', weatherLocEn: 'Taipei',
             showInfoCard: true, showNavPill: true, navAddress: ''
         });
@@ -2827,10 +2634,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             handleViewerTouchStart, handleViewerTouchMove, handleViewerTouchEnd,
             dayColors, settlementCanvas, activeCategory, handleChartClick, catColors,
                         isAdminLoggedIn, adminLoginOpen, adminEditOpen, adminCreds, attemptAdminLogin, saveActiveTripId, newTripIdInput, goToPrepInput,
-            navPillModalOpen, newNavAddress, navPillLabel, navPillIcon, handlePillDown, handlePillUp, handlePillLeave, saveNavAddress,
-            // AI Feature Exports
-            aiModalOpen, isAiLoading, aiSuggestions, hasAiGenerated, 
-            triggerColdStart, triggerGapFill, acceptAiSuggestion, calculateGap
+            navPillModalOpen, newNavAddress, navPillLabel, navPillIcon, handlePillDown, handlePillUp, handlePillLeave, saveNavAddress
         };
       }
     }).mount('#app');
