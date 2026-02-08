@@ -1,0 +1,2642 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="utf-8" />
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+  <title>Travel Sync Dev14.02</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+  <style>
+        :root {
+      --ios-bg: #F2F2F7;
+      /* iOS 26 Style: 降低白底濃度，讓背景透出來 */
+      --ios-card-bg: rgba(255, 255, 255, 0.55);
+      /* 增強邊框亮度，製造切割玻璃感 */
+      --ios-card-border: rgba(255, 255, 255, 0.65);
+      --ios-primary: #007AFF;
+      /* 關鍵：加入 saturate(180%) 讓透視的顏色更鮮豔，增加模糊度 */
+      --glass-blur: blur(40px) saturate(180%);
+      --hkg-navy: #353E53;
+      --hkg-yellow: #E9EB4F;
+      --hkg-red: #BF443B;
+      --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--ios-bg);
+      font-family: var(--font-stack);
+      -webkit-font-smoothing: antialiased;
+      margin: 0;
+      color: #000; overflow: hidden; user-select: none;
+    }
+
+        .bg-fixed-layer { 
+  position: fixed; 
+  inset: 0; 
+  z-index: 0; 
+  pointer-events: none; 
+}
+
+.bg-fixed-layer img { 
+  width: 100%; 
+  height: 100%; 
+  object-fit: cover; 
+  /* 改動 1：移除圖片 blur */
+  filter: none; 
+  /* 改動 2：縮細 scale，避免過度模糊邊緣 */
+  transform: scale(1.05); 
+}
+
+.bg-overlay { 
+  position: absolute; 
+  inset: 0; 
+  /* 改動 3：稍微加深遮罩 */
+  background: rgba(242, 242, 247, 0.55); 
+  /* 改動 4：保留但降低 blur */
+  backdrop-filter: blur(4px); 
+}
+    #app { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+
+    main {
+        flex: 1;
+        overflow-y: auto; -webkit-overflow-scrolling: touch;
+        padding-bottom: 120px; padding-top: 110px;
+        position: relative; z-index: 10;
+    }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    .ios-card {
+      background: var(--ios-card-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      /* 複合邊框：外邊框 + 內部微光，增加立體感 */
+      border: 1px solid var(--ios-card-border); border-radius: 24px;
+      box-shadow: 
+        0 8px 32px 0 rgba(31, 38, 135, 0.07),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+      overflow: hidden;
+    }
+
+        /* List Item Styles */
+    .ios-list-item {
+      /* 更通透，形成「玻璃上的玻璃」層次感 */
+      background: rgba(255, 255, 255, 0.45);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 20px;
+      margin-bottom: 8px; 
+      padding: 14px;
+      display: flex;
+      align-items: center; 
+      justify-content: space-between;
+      transition: background 0.2s, transform 0.2s;
+      border: 1px solid rgba(255,255,255,0.5);
+      touch-action: manipulation;
+    }
+    .ios-list-item:active { background: rgba(255, 255, 255, 0.95); transform: scale(0.98); }
+    .task-done { text-decoration: line-through; color: #8E8E93; opacity: 0.7; }
+
+    /* Action Buttons */
+    .action-btn-group {
+        display: flex; align-items: center; gap: 4px; flex-shrink: 0; padding-left: 8px;
+        opacity: 0.6; transition: opacity 0.2s;
+    }
+    .ios-list-item:hover .action-btn-group, .action-btn-group:active { opacity: 1; }
+    .icon-btn { padding: 6px; color: #8E8E93; transition: color 0.2s; border-radius: 50%; }
+    .icon-btn:hover { background: rgba(0,0,0,0.05); }
+    .icon-btn.edit:hover { color: var(--ios-primary); }
+    .icon-btn.delete:hover { color: var(--ios-danger); }
+
+    .ios-input {
+      background: rgba(118, 118, 128, 0.12);
+      border: none; border-radius: 10px;
+      padding: 10px 12px; font-size: 16px; color: #000; width: 100%; box-sizing: border-box;
+    }
+    .ios-input:focus { background: rgba(118, 118, 128, 0.2); outline: none; }
+
+    .modal-backdrop { 
+      background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(5px);
+      z-index: 100; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px;
+    }
+    .ios-modal-container {
+      /* 統一使用玻璃變數，保持通透 */
+      background: rgba(255, 255, 255, 0.70);
+      backdrop-filter: blur(50px) saturate(200%);
+      -webkit-backdrop-filter: blur(50px) saturate(200%);
+      border-radius: 36px;
+      display: flex; flex-direction: column; max-height: 90vh; width: 100%; max-width: 400px;
+      /* 更柔和深邃的陰影 */
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15), inset 0 0 0 1px rgba(255,255,255,0.5);
+      border: 1px solid rgba(255,255,255,0.4);
+/* 修復：強制裁切溢出的子元素背景，解決底部直角突出問題 */
+      overflow: hidden;
+    }
+    .ios-modal-header { padding: 16px; text-align: center; font-weight: 600; font-size: 17px; border-bottom: 0.5px solid rgba(0,0,0,0.1); position: relative;}
+    .ios-modal-body { flex: 1; overflow-y: auto; padding: 20px; -webkit-overflow-scrolling: touch; }
+    .ios-modal-body.calc-body { padding: 16px 16px 8px 16px; overflow-y: hidden; display: flex; flex-direction: column; }
+    
+    .ios-modal-footer { padding: 16px 20px; border-top: 0.5px solid rgba(0,0,0,0.1); display: flex; gap: 12px; background: rgba(255,255,255,0.5); }
+    
+    .btn-ios-cancel { flex: 1; height: 44px; border-radius: 12px; background: rgba(118, 118, 128, 0.12); color: #000; font-weight: 600; }
+    .btn-ios-primary { flex: 1; height: 44px; border-radius: 12px; background: var(--ios-primary); color: white; font-weight: 600; box-shadow: 0 0 15px rgba(0, 122, 255, 0.4); }
+
+    .iphone-dock {
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(40px) saturate(180%);
+      -webkit-backdrop-filter: blur(40px) saturate(180%);
+      border-radius: 40px; padding: 12px 24px; 
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+      display: flex; justify-content: space-between; align-items: flex-end;
+      width: 100%; max-width: 360px;
+      margin: 0 auto;
+    }
+    
+    .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    .toast-notification {
+        position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+        background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+        color: white; padding: 10px 20px; border-radius: 50px;
+        font-size: 14px; font-weight: 600; z-index: 200;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        display: flex; align-items: center; gap: 8px;
+    }
+    .fade-enter-active, .fade-leave-active { transition: opacity 0.3s, transform 0.3s; }
+    .fade-enter-from, .fade-leave-to { opacity: 0; transform: translate(-50%, -10px); }
+
+        /* 移植 5.09 Tab 樣式 */
+    .day-tab { transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      background: rgba(255, 255, 255, 0.5); border: 1px solid rgba(255,255,255,0.2); }
+    .day-tab.active { background: rgba(255, 255, 255, 0.9);
+      border-color: rgba(255,255,255,0.5); box-shadow: 0 4px 15px rgba(0,0,0,0.05); transform: translateY(-2px); }
+    
+    /* 修正 Input 樣式以適應快速新增欄 */
+    .ios-input-bar {
+      background: rgba(118, 118, 128, 0.12);
+      border: none; border-radius: 12px; padding: 12px 16px;
+      font-size: 17px; color: #000; width: 100%; box-sizing: border-box;
+      transition: background 0.2s;
+    }
+    .ios-input-bar:focus { background: rgba(118, 118, 128, 0.2); outline: none; }
+    
+    .hkg-header { background: var(--hkg-navy); color: white; }
+    .hkg-yellow-text { color: var(--hkg-yellow); }
+    .hkg-footer { background: var(--hkg-red); color: white; }
+    .flight-tab { transition: all 0.2s; }
+    .flight-tab.active { background: rgba(255,255,255,0.2); font-weight: bold; border: 1px solid rgba(255,255,255,0.3); }
+
+    .ios-card-dark-glass {
+      background: rgba(20, 20, 24, 0.75);
+      backdrop-filter: blur(50px) saturate(150%);
+      -webkit-backdrop-filter: blur(50px) saturate(150%);
+      /* 稍微調亮邊框，增加深色玻璃的邊緣反光 */
+      border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 28px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); color: white; position: relative; overflow: hidden;
+    }
+    .dark-glass-gradient {
+        position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+        background: radial-gradient(circle at 80% 20%, rgba(10, 132, 255, 0.25), transparent 60%); pointer-events: none; z-index: 0;
+    }
+    .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; flex: 1; margin-top: 8px; }
+    .calc-btn { border-radius: 10px; background: white; font-size: 20px; font-weight: 500; color: #333; height: 100%; min-height: 40px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+    .calc-btn:active { background: #E5E5EA; }
+    .calc-btn.op { background: #FF9500; color: white; font-weight: 600; }
+    .calc-btn.top-op { background: #D1D1D6; color: black; }
+        .calc-btn.done-btn { background: var(--ios-primary); color: white; font-size: 17px; font-weight: 600; }
+
+    /* 新增懸浮按鈕樣式 */
+    .floating-add-btn {
+        position: fixed; bottom: 100px; right: 20px;
+        width: 56px; height: 56px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 40;
+        transition: all 0.2s; color: white;
+        backdrop-filter: blur(5px);
+    }
+    .floating-add-btn:active, .floating-add-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
+    .floating-add-btn i { font-size: 28px; }
+
+    /* Swipe Boundary Bounce Animation */
+    @keyframes bounce-limit-left { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-30px); } }
+        @keyframes bounce-limit-right { 0%, 100% { transform: translateX(0);
+} 50% { transform: translateX(30px); } }
+    .bounce-left { animation: bounce-limit-left 0.3s cubic-bezier(0.25, 0.8, 0.5, 1);
+}
+    .bounce-right { animation: bounce-limit-right 0.3s cubic-bezier(0.25, 0.8, 0.5, 1);
+}
+
+    /* --- Intro Loading Layer (Sketch Style) --- */
+    .intro-layer {
+        position: fixed; inset: 0; z-index: 9999;
+        background: #F2F2F7; /* 配合 iOS 背景色 */
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        transition: opacity 0.2s ease-out;
+    }
+    .intro-layer.fade-out { opacity: 0; pointer-events: none; }
+    
+        .sketch-box {
+        width: 280px;
+        max-width: 80%;
+        display: flex; flex-direction: column; align-items: center; gap: 20px;
+        /* 修正：移除旋轉，確保進度條水平 */
+        transform: none;
+    }
+
+    .sketch-track {
+        width: 100%; height: 24px;
+        background: white;
+        /* 手繪不規則邊框技巧 */
+        border: 2px solid #353E53;
+        border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+        padding: 3px;
+        position: relative;
+        box-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+    }
+
+    .sketch-fill {
+        height: 100%;
+        background: #353E53;
+        /* 內部填充也要稍微不規則 */
+        border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+        width: 0%;
+        transition: width 0.3s ease-out;
+        position: relative;
+    }
+    
+    /* 填充條上的紋理 (鉛筆塗抹感) */
+    .sketch-fill::after {
+        content: ''; position: absolute; inset: 0;
+        background: repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 2px,
+            rgba(255,255,255,0.1) 2px,
+            rgba(255,255,255,0.1) 4px
+        );
+    }
+
+    .sketch-text {
+        font-weight: 700; color: #353E53; font-size: 15px;
+        text-align: center; letter-spacing: 0.5px;
+        min-height: 24px;
+        display: flex; align-items: center; gap: 6px;
+    }
+
+    /* 簡單的圖示彈跳動畫 */
+    .icon-bounce { animation: icon-bounce 1s infinite alternate ease-in-out; }
+        @keyframes icon-bounce { from { transform: translateY(0); } to { transform: translateY(-3px);
+} }
+
+    /* Dynamic Navigation Pill */
+        .dynamic-nav-pill {
+        position: fixed;
+        top: calc(env(safe-area-inset-top) + 12px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: #000000;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 24px;
+        z-index: 60;
+        /* Above Header(50), Below Modal(100) */
+        display: flex; align-items: center; justify-content: center;
+        gap: 8px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        font-size: 13px; font-weight: 600;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        cursor: pointer;
+        user-select: none;
+        touch-action: none; /* Prevent browser zooming/scrolling on the pill */
+        width: 90px; /* Fix: Fixed width to prevent resize jitter */
+        box-sizing: border-box;
+    }
+                .dynamic-nav-pill span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            text-align: center;
+    }
+    .pill-breathing { animation: pill-breathe 3s infinite ease-in-out; }
+    @keyframes pill-breathe {
+        0%, 100% { box-shadow: 0 4px 20px rgba(0,0,0,0.25); transform: translateX(-50%) scale(1); }
+        50% { box-shadow: 0 8px 25px rgba(0,0,0,0.4); transform: translateX(-50%) scale(1.03); }
+    }
+
+  </style>
+
+</head>
+
+<body>
+  <div id="app">
+    <div v-if="introVisible" class="intro-layer" :class="{ 'fade-out': introFading }">
+        <div class="sketch-box">
+            <div class="sketch-text">
+                <span>{{ introText }}</span>
+                <i v-if="introStep === 0" class="ph-fill ph-suitcase-rolling icon-bounce"></i>
+                <i v-if="introStep === 1" class="ph-fill ph-map-pin-area icon-bounce"></i>
+                <i v-if="introStep === 2" class="ph-fill ph-airplane-tilt icon-bounce" style="animation-duration: 0.5s;"></i>
+            </div>
+            <div class="sketch-track">
+                <div class="sketch-fill" :style="{ width: introProgress + '%' }"></div>
+            </div>
+        </div>
+        <div class="absolute bottom-10 text-gray-400/50 text-xs font-mono font-bold tracking-widest uppercase transform rotate-1">
+            Travel Sync Starting...
+        </div>
+    </div>
+
+        <div v-if="settings.showNavPill !== false" 
+         class="dynamic-nav-pill" 
+         :class="{'pill-breathing': !!settings.navAddress}"
+         @pointerdown="handlePillDown" 
+         @pointerup="handlePillUp" 
+         @pointerleave="handlePillLeave">
+        <i :class="navPillIcon"></i>
+        <span>{{ navPillLabel }}</span>
+    </div>
+
+    <div class="bg-fixed-layer">
+        <img src="./IMG_1641.jpeg" alt="Background">
+        <div class="bg-overlay"></div>
+    </div>
+
+        <header @click="scrollToTop" class="cursor-pointer fixed top-0 left-0 right-0 z-50 pt-8 pb-3 px-6 flex justify-between items-end bg-white/10 backdrop-blur-xl border-b border-white/10 transition-all duration-300">
+
+      <div>
+        <div class="text-[10px] font-bold text-gray-500 tracking-wide mb-0.5 font-mono flex items-center gap-2">
+           TRAVEL SYNC
+            <div class="flex items-center gap-1.5">
+               <div class="w-2 h-2 rounded-full transition-all duration-300"
+                    :class="{'bg-[#34C759]': syncState === 'synced', 'bg-[#FFCC00] animate-pulse': syncState === 'syncing', 'bg-[#FF3B30]': syncState === 'error', 'bg-gray-400': syncState === 'offline'}"></div>
+               <span class="text-xs text-gray-400">{{ syncStatusText }}</span>
+           </div>
+        </div>
+                <h1 class="font-bold text-black tracking-tight flex items-baseline gap-2 whitespace-nowrap overflow-hidden text-[clamp(18px,5vw,30px)]">
+           <span v-if="(settings.route || '').startsWith('=')" v-html="(settings.route || '').substring(1)"></span>
+          <span v-else>{{ settings.route || t('tripRoute') }}</span>
+          <span class="font-medium text-gray-500 font-mono tracking-normal text-[0.5em] opacity-80">{{ headerDateRange }}</span>
+        </h1>
+      </div>
+      <div class="flex flex-col items-end gap-2">
+         <button @click="toggleLang" class="text-[10px] font-bold bg-gray-200/80 text-gray-600 px-2 py-0.5 rounded-md hover:bg-gray-300 transition-colors">
+            {{ lang === 'zh' ? 'EN' : '繁' }}
+         </button>
+      </div>
+    </header>
+
+    <transition name="fade">
+        <div v-if="notification" class="toast-notification">
+            <i class="ph-fill ph-check-circle text-green-400"></i> {{ notification }}
+        </div>
+    </transition>
+
+    <main class="px-5 space-y-5 relative">
+      
+            <div v-if="currentTab === '首頁'" class="space-y-5 animate-fade-in pb-10">
+        
+        <div class="relative transition-all duration-500 group">
+             <div class="rounded-[24px] overflow-hidden shadow-xl font-sans relative flex flex-col transition-all duration-300" 
+                  :class="isFlightMinimized ? 'min-h-[auto]' : 'min-h-[240px]'">
+                  
+                  <div class="hkg-header px-5 py-4 relative transition-all duration-300" :class="{'pb-4': !isFlightMinimized, 'pb-3': isFlightMinimized}">
+                     <button @click.stop="isFlightMinimized = !isFlightMinimized" class="absolute top-4 left-4 z-30 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center backdrop-blur-md transition-colors">
+                         <i class="ph-bold text-white text-sm" :class="isFlightMinimized ? 'ph-caret-down' : 'ph-caret-up'"></i>
+                     </button>
+
+                     <div class="flex justify-center mb-2 relative z-20">
+                         <div class="bg-black/20 rounded-lg p-0.5 flex backdrop-blur-sm border border-white/10">
+                             <button @click.stop="currentFlightView='outbound'" class="px-3 py-1 text-[10px] rounded-md flight-tab" :class="{'active': currentFlightView==='outbound'}">{{ t('outbound') }}</button>
+                             <button @click.stop="currentFlightView='return'" class="px-3 py-1 text-[10px] rounded-md flight-tab" :class="{'active': currentFlightView==='return'}">{{ t('return') }}</button>
+                         </div>
+                    </div>
+
+                    <div class="absolute top-4 right-5 z-30 flex flex-col items-end gap-2">
+                        <div class="flex gap-2">
+                             <button v-show="!isFlightMinimized" @click.stop="openFlightModal" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center backdrop-blur-md transition-colors">
+                                  <i class="ph-bold ph-pencil-simple text-white text-sm"></i>
+                             </button>
+                        </div>
+                        <a v-if="displayedFlight.liveLink && !isFlightMinimized" :href="displayedFlight.liveLink" target="_blank" class="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 border border-white/20 px-2.5 py-1 rounded-full text-[10px] font-bold text-white transition-all active:scale-95 backdrop-blur-md">
+                             <i class="ph-fill ph-broadcast text-[#34C759] animate-pulse"></i> {{ t('liveStatus') }}<i class="ph-bold ph-arrow-square-out opacity-70"></i>
+                         </a>
+                    </div>
+                    
+                    <div v-if="!isFlightMinimized" class="flex flex-col items-center justify-center mt-4 mb-2 animate-fade-in">
+                        <span class="text-[10px] opacity-70 uppercase tracking-widest font-semibold">{{ t('gate') }}</span>
+                        <span class="text-5xl font-bold leading-none mt-1 hkg-yellow-text tracking-tighter">{{ displayedFlight.gate || '--' }}</span>
+                    </div>
+
+                    <div v-else class="flex flex-col items-center justify-center mt-1 animate-fade-in text-white/80 pb-1">
+                         <div class="text-sm font-bold tracking-tight flex items-center gap-2">
+                             <span>{{ displayedFlight.code }}</span>
+                             <span class="opacity-30">|</span>
+                             <span>{{ displayedFlight.fromCode }}</span>
+                             <i class="ph-bold ph-airplane rotate-90 text-[10px]"></i>
+                             <span>{{ displayedFlight.toCode }}</span>
+                         </div>
+                    </div>
+                </div>
+
+                <div v-if="!isFlightMinimized" class="bg-white px-6 py-5 flex-1 flex flex-col justify-center animate-fade-in">
+                    <div class="flex justify-between items-end mb-2">
+                         <div class="flex flex-col items-center w-1/3">
+                            <span class="text-3xl font-bold text-slate-800 tracking-tighter">{{ displayedFlight.fromCode }}</span>
+                            <span class="text-xs font-bold text-gray-400 mt-0.5">{{ t('terminal') }} {{ displayedFlight.fromTerminal || '-' }}</span>
+                         </div>
+                         <div class="flex flex-col items-center justify-center w-1/3 pb-2">
+                             <span class="text-sm font-bold text-slate-600">{{ displayedFlight.code }}</span>
+                             <div class="w-full h-[1px] bg-gray-200 relative flex items-center justify-center my-3">
+                                 <i class="ph-fill ph-airplane text-[#353E53] text-lg bg-white px-1 rotate-90"></i>
+                             </div>
+                             <span class="text-[9px] text-gray-400 uppercase tracking-wide">{{ displayedFlight.title }}</span>
+                         </div>
+                         <div class="flex flex-col items-center w-1/3">
+                            <span class="text-3xl font-bold text-slate-800 tracking-tighter">{{ displayedFlight.toCode }}</span>
+                            <span class="text-xs font-bold text-gray-400 mt-0.5">{{ t('terminal') }} {{ displayedFlight.toTerminal || '-' }}</span>
+                         </div>
+                    </div>
+                    <div class="flex justify-between items-center mt-2 px-1">
+                        <div class="text-left">
+                             <div class="text-[10px] font-bold text-gray-400 uppercase">{{ t('estDep') }}</div>
+                            <div class="text-2xl font-bold text-[#353E53] font-mono leading-none mt-0.5">{{ displayedFlight.depTime }}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-[10px] font-bold text-gray-400 uppercase">{{ t('estArr') }}</div>
+                            <div class="text-2xl font-bold text-[#353E53] font-mono leading-none mt-0.5">{{ displayedFlight.arrTime }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div v-if="!isFlightMinimized" class="hkg-footer px-5 py-2.5 flex justify-between items-center text-xs font-bold tracking-wide animate-fade-in">
+                     <span>{{ t('economy') }}</span>
+                     <span class="bg-black/20 px-2 py-0.5 rounded text-[10px] uppercase border border-white/10">{{ t(displayedFlight.status || 'Scheduled') }}</span>
+                </div>
+             </div>
+        </div>
+
+                                <section v-if="settings.showInfoCard !== false" class="ios-card p-5 bg-blue-50/10 border-blue-100/30 relative group">
+             <button @click="openInfoModal(null)" class="absolute top-4 right-4 w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-200 transition-colors"><i class="ph-bold ph-plus"></i></button>
+
+                          <h2 class="text-sm font-bold text-blue-800 mb-2 flex items-center gap-2"><i class="ph-fill ph-info"></i> {{ t('info') }}</h2>
+                          <ul v-if="infoList.length > 0" class="space-y-2 mt-2" id="sortable-info">
+                 <li v-for="info in infoList" :key="info.id" :data-id="info.id" @click="openInfoModal(info)" class="text-xs text-blue-900/80 border-b border-blue-200/50 pb-1.5 last:border-0 cursor-pointer hover:bg-blue-50/50 flex items-center gap-2 transition-colors rounded px-1">
+                     <div class="drag-handle text-blue-500/50 hover:text-blue-600 cursor-grab px-1"><i class="ph-bold ph-dots-three-vertical text-sm"></i></div>
+                     <span class="font-bold flex-1">{{ info.title }}</span>
+                     <i class="ph-bold ph-caret-right text-[10px] opacity-50"></i>
+                 </li>
+             </ul>
+             <p v-else class="text-xs text-blue-900/50 italic">{{ t('noInfo') }}</p>
+        </section>
+
+        <div class="grid grid-cols-2 gap-4">
+                        <div class="ios-card p-4 relative overflow-hidden group">
+               <div class="absolute inset-0 z-0" @mousedown="captureQuickEstFocus" @touchstart="captureQuickEstFocus" @click="clearQuickEstOnRateCardBg" aria-hidden="true"></div>
+               <div class="relative z-10 flex justify-between items-start mb-2">
+                   <div class="flex items-center gap-2">
+                       <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-lg"><i class="ph-bold ph-currency-circle-dollar"></i></div>
+                       <span class="text-xs font-bold text-gray-500">{{ t('rate') }}</span>
+                   </div>
+                   <button @click="toggleRateOrder" class="text-gray-400 hover:text-blue-500 p-1"><i class="ph ph-arrows-left-right"></i></button>
+               </div>
+                              <div class="relative z-10 flex flex-col" style="container-type: inline-size;">
+                   <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">
+                      {{ rateDisplayMode === 0 ?
+(settings.localCurrency + ' / ' + settings.homeCurrency) : (settings.homeCurrency + ' / ' + settings.localCurrency) }}
+                   </div>
+                   <div class="font-bold text-slate-800 tracking-tight leading-none text-[clamp(22px,20cqw,36px)]">{{ displayedRate }}</div>
+                                      <div class="text-[9px] text-gray-400 mt-1 font-mono">{{ t('feeIncluded') }} • {{ lastRateUpdateLabel }}</div>
+                   
+                   <div class="mt-1 pt-1 border-t border-gray-200/30">
+                          <div class="relative flex items-center justify-end">
+    <div class="inline-flex max-w-full items-center justify-end
+            rounded-full
+            bg-gray-100/70
+            px-3 py-1
+            border border-gray-300/40
+            focus-within:border-blue-500/50
+            transition-colors">
+
+                <input
+            ref="quickEstInput"
+            type="text"
+            inputmode="decimal"
+            v-model="quickEstAmount"
+            @focus="unformatQuickEst"
+            @blur="formatQuickEst"
+            placeholder="0"
+            class="flex-1 min-w-0 bg-transparent text-right
+                   font-bold text-slate-800 text-lg
+                   p-0 border-none focus:outline-none
+                   placeholder-gray-300/70
+                   appearance-none m-0 leading-tight"
+        />
+
+        <span class="text-[10px] font-bold text-gray-400 ml-2 flex-shrink-0">
+            {{ settings.localCurrency }}
+        </span>
+    </div>
+</div>
+                       <div v-if="quickEstAmount !== ''" class="text-right text-xs font-bold text-blue-600 mt-0.5 leading-none">≈ {{ settings.homeCurrency }} {{ quickEstResult }}</div>
+                   </div>
+           
+    </div>
+            </div>
+            
+                       <div class="ios-card p-3 relative group overflow-hidden h-full flex flex-col justify-between">
+                <div class="flex justify-between items-start">
+                    <i :class="weatherIconClass" class="text-[3.5rem] leading-none text-gray-800/80 drop-shadow-sm -ml-1 mt-1"></i>
+                                                            <div class="text-right z-10 ml-2 flex-1 min-w-0" style="container-type: inline-size;">
+                       <span class="font-bold text-gray-600 uppercase block whitespace-nowrap text-[clamp(20px,12cqw,20px)]">
+                           {{ lang === 'zh' ? (settings.weatherLoc || 'Taipei') : (settings.weatherLocEn || settings.weatherLoc || 'Taipei') }}
+                       </span>
+                    </div>
+                </div>
+                <div class="flex justify-between items-end mt-2">
+                     <div class="flex flex-col gap-[2px] pb-[2px]">
+                         <div class="flex items-center gap-1.5">
+                              <span class="text-[9px] font-bold text-gray-400 uppercase w-8 text-right">{{ t('feelsLike') }}</span>
+                              <span class="text-[10px] font-bold text-gray-700">{{ weather.feelsLike }}°</span>
+                         </div>
+                          <div class="flex items-center gap-1.5">
+                              <span class="text-[9px] font-bold text-gray-400 uppercase w-8 text-right">{{ t('humidity') }}</span>
+                              <span class="text-[10px] font-bold text-gray-700">{{ weather.humidity }}%</span>
+                          </div>
+                          <div class="flex items-center gap-1.5">
+                              <span class="text-[9px] font-bold text-gray-400 uppercase w-8 text-right">UV</span>
+                              <span class="text-[10px] font-bold text-gray-700">{{ weather.uv }}</span>
+                          </div>
+                          <div class="flex items-center gap-1.5">
+                              <span class="text-[9px] font-bold text-gray-400 uppercase w-8 text-right">{{ t('rain') }}</span>
+                              <span class="text-[10px] font-bold text-[#007AFF]">{{ weather.rain }}%</span>
+                              <i v-if="weather.warning" class="ph-fill ph-warning text-red-500 text-xs animate-pulse ml-0.5" :title="weather.warning"></i>
+                         </div>
+                     </div>
+                     <div class="text-right">
+                        <div class="text-4xl font-light tracking-tighter text-slate-800 leading-none">{{ weather.temp }}°</div>
+                        <div class="text-[10px] font-semibold text-gray-400 mt-1">H:{{ weather.max }}° L:{{ weather.min }}°</div>
+                     </div>
+                </div>
+            </div>
+        </div>
+
+                <section>
+            <div class="flex items-center justify-between mb-3 px-1">
+                 <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i class="ph-fill ph-calendar-check text-blue-500"></i> {{ t('itinerary') }}
+                 </h2>
+                <button @click="currentTab='行程'; selectDay(currentTripDayIndex !== -1 ? currentTripDayIndex : 0)" class="text-blue-500 text-xs font-bold uppercase tracking-wide hover:bg-blue-50 px-2 py-1 rounded-lg">{{ t('viewAll') }}</button>
+            </div>
+
+            <div v-if="currentTripDayIndex !== -1" class="ios-card p-4 flex flex-col gap-3 cursor-pointer hover:bg-white/40 transition-colors"
+                 @click="selectDay(currentTripDayIndex); currentTab='行程'">
+                 <div class="flex justify-between items-center border-b border-gray-200/50 pb-2">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase">TODAY (DAY {{ currentTripDayIndex + 1 }})</span>
+                        <span class="font-bold text-slate-800 text-sm">{{ getDayHeader(currentTripDayIndex) }}</span>
+                    </div>
+                    <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">{{ itinerary[currentTripDayIndex]?.length || 0 }}</span>
+                 </div>
+                                  <div class="flex flex-col gap-2 pr-1" :class="{'max-h-[200px] overflow-y-auto': (itinerary[currentTripDayIndex]?.length || 0) > 5}">
+                    <div v-for="item in itinerary[currentTripDayIndex]" :key="item.id" class="text-sm border-l-2 border-blue-500 pl-2 py-0.5">
+                        <div class="font-bold text-slate-800 truncate">{{ item.time }} {{ item.title }}</div>
+                    </div>
+                    <div v-if="(!itinerary[currentTripDayIndex] || itinerary[currentTripDayIndex].length===0)" class="text-xs text-gray-400 italic">{{ t('noItems') }}</div>
+                 </div>
+                 <div class="text-center text-[10px] text-[#007AFF] font-bold mt-1">點擊查看詳情</div>
+            </div>
+
+            <div v-else class="flex overflow-x-auto gap-3 pb-4 no-scrollbar -mx-5 px-5 snap-x">
+                <div v-for="(dayItems, idx) in itinerary" :key="idx" 
+                     @click="selectDay(idx); currentTab='行程'"
+                     class="snap-center shrink-0 w-[240px] ios-card p-4 flex flex-col gap-3 h-full cursor-pointer hover:bg-white/40 transition-colors">
+                     <div class="flex justify-between items-center border-b border-gray-200/50 pb-2">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-bold text-gray-400 uppercase">DAY {{ idx + 1 }}</span>
+                            <span class="font-bold text-slate-800 text-sm">{{ getDayHeader(idx) }}</span>
+                        </div>
+                                           <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">{{ dayItems.length }}</span>
+                  </div>
+                    <div class="flex flex-col gap-2 pr-1" :class="{'max-h-[150px] overflow-y-auto': dayItems.length > 5}">
+                                           
+ <div v-for="item in dayItems" :key="item.id" class="text-sm border-l-2 pl-2 py-0.5" :class="item.colorClass ||
+'border-gray-300'">
+
+                        <div class="font-bold text-slate-800 truncate">{{ item.time }} {{ item.title }}</div>
+                    </div>
+                        <div v-if="dayItems.length===0" class="text-xs text-gray-400 italic">{{ t('noItems') }}</div>
+                     </div>
+                </div>
+            </div>
+        </section>
+
+        <div v-if="isPreTrip" class="ios-card p-5 relative group cursor-pointer" @click="selectedDay='prep'; currentTab='行程'; scrollToTop()">
+             <div class="flex justify-between items-center mb-2">
+                <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i class="ph-fill ph-check-square text-green-500"></i> {{ t('prepList') }}
+                </h2>
+                <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">{{ preTripNotes.filter(i=>!i.isDone).length }}</span>
+             </div>
+             
+                          <ul id="sortable-pre-home" v-if="preTripNotes.filter(i=>!i.isDone).length > 0" class="space-y-2 mt-2 pr-1" :class="{'max-h-[200px] overflow-y-auto': preTripNotes.filter(i=>!i.isDone).length > 5}">
+                 <li v-for="item in preTripNotes.filter(i=>!i.isDone)" :key="item.id" 
+                   @click.stop="jumpToPreNote(item.id)"
+                   class="text-xs text-slate-700 border-b border-gray-100 pb-1 last:border-0 flex justify-between items-center hover:bg-black/5 rounded px-1 -mx-1 transition-colors">
+                  <div class="flex items-center gap-2 overflow-hidden">
+                      <i class="ph-fill text-sm" :class="item.isDone ? 'ph-check-circle text-green-500' : 'ph-circle text-gray-300'"></i>
+                     <span class="font-bold truncate" :class="{'line-through text-gray-400': item.isDone}">{{ item.name }}</span>
+                  </div>
+                  <i class="ph-bold ph-caret-right text-[10px] opacity-30"></i>
+               </li>
+             </ul>
+             <p v-else class="text-xs text-gray-400 italic">{{ t('noItems') }}</p>
+        </div>
+
+                                        <div class="ios-card p-5 relative group cursor-pointer" @click="currentTab='購物'; scrollToTop()">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2"><i class="ph-fill ph-shopping-bag text-pink-500"></i> {{ t('shopping') }}</h2>
+                <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">{{ shoppingList.filter(i=>!i.isDone).length }}</span>
+            </div>
+             <ul v-if="shoppingList.filter(i=>!i.isDone).length > 0" class="space-y-2 mt-2 pr-1" :class="{'max-h-[200px] overflow-y-auto': shoppingList.filter(i=>!i.isDone).length > 5}">
+                 <li v-for="item in shoppingList.filter(i=>!i.isDone)" :key="item.id" 
+                     @click.stop="jumpToShoppingItem(item.id)"
+                     class="text-xs text-slate-700 border-b border-gray-100 pb-1 last:border-0 flex justify-between items-center hover:bg-black/5 rounded px-1 -mx-1 transition-colors">
+                      <div class="flex items-center gap-2 overflow-hidden">
+                        <i class="ph-fill ph-circle text-sm text-gray-300"></i>
+                        <span class="font-bold truncate">{{ item.name }}</span>
+                      </div>
+                      <i class="ph-bold ph-caret-right text-[10px] opacity-30"></i>
+                 </li>
+             </ul>
+
+             <p v-else class="text-xs text-gray-400 italic">{{ t('noItems') }}</p>
+        </div>
+
+                <div class="ios-card-dark-glass p-6 mb-4 relative cursor-pointer active:scale-[0.99] transition-transform" @click="goToExpenseList">
+             <div class="dark-glass-gradient"></div>
+     
+             <button @click.stop="currentTab='記帳';
+ openMemberModal()" class="absolute top-4 left-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center text-white transition-all z-20"><i class="ph-bold ph-gear text-lg"></i></button>
+             <button @click.stop="currentTab='記帳';
+ openExpenseModal(null)" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center text-white transition-all z-20"><i class="ph-bold ph-plus text-lg"></i></button>
+
+             <div class="relative z-10 flex flex-col items-center justify-center mt-2">
+                 <div class="text-white/60 text-[11px] font-bold tracking-widest uppercase mb-1">{{ t('totalExpense') }} ({{ settings.homeCurrency }})</div>
+                 <div class="text-4xl font-light tracking-tight text-white flex items-baseline">
+                    <span class="text-2xl opacity-60 mr-1">$</span>{{ formatNumber(totalExpense.hkd) }}
+                 </div>
+                 <div class="text-white/40 text-xs font-medium mt-1">≈ {{ settings.localCurrency }} {{ formatNumber(totalExpense.twd) }}</div>
+             </div>
+             <div class="grid grid-cols-2 gap-4 mt-6 relative z-10">
+                <div class="bg-white/5 rounded-2xl p-3 backdrop-blur-sm border border-white/5 flex flex-col items-center justify-center text-center">
+                     <div class="text-white/50 text-[10px] uppercase tracking-wider mb-1"><i class="ph-fill ph-credit-card mr-1"></i>{{ t('creditCard') }}</div>
+                     <div class="text-lg font-bold text-white mb-0.5">${{ formatNumber(expensesBreakdown.card.hkd) }}</div>
+                     <div class="text-[9px] text-white/40">≈ {{ settings.localCurrency }} {{ formatNumber(expensesBreakdown.card.twd) }}</div>
+                </div>
+                <div class="bg-white/5 rounded-2xl p-3 backdrop-blur-sm border border-white/5 flex flex-col items-center justify-center text-center">
+                    <div class="text-white/50 text-[10px] uppercase tracking-wider mb-1"><i class="ph-fill ph-coins mr-1"></i>{{ t('cash') }}</div>
+                    <div class="text-lg font-bold text-white mb-0.5">${{ formatNumber(expensesBreakdown.cash.hkd) }}</div>
+                    <div class="text-[9px] text-white/40">≈ {{ settings.localCurrency }} {{ formatNumber(expensesBreakdown.cash.twd) }}</div>
+                </div>
+             </div>
+        </div>
+      </div>
+            <div v-if="currentTab === '行程'" ref="swipeContainer" :class="bounceClass" class="space-y-4 animate-fade-in pb-20 transition-transform">
+         
+         <div class="mb-4">
+            <div class="flex justify-between gap-3 overflow-x-auto no-scrollbar py-1 px-1">
+              <button @click="selectedDay = 'prep'" 
+                 class="day-tab flex-shrink-0 w-[20%] h-[76px] rounded-2xl flex flex-col items-center justify-center text-xs relative overflow-hidden group"
+                 :class="{ 'active': selectedDay === 'prep' }">
+                 <i class="ph ph-list-checks text-2xl mb-1 text-gray-400 transition-colors group-[.active]:text-[#007AFF]"></i>
+                 <span class="font-medium text-gray-500 group-[.active]:font-bold">{{ t('prepList') }}</span>
+              </button>
+             
+              <button v-for="(d, i) in dayList" :key="i"
+                  @click="selectDay(i)"
+                  class="day-tab flex-shrink-0 w-[22%] h-[76px] rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group"
+                  :class="{ 'active': selectedDay === i }">
+                <span class="text-[10px] font-bold uppercase text-gray-400 mb-0.5 group-[.active]:text-[#007AFF]">Day {{ i + 1 }}</span>
+                <span class="text-[11px] font-medium text-gray-400 group-[.active]:text-gray-800">{{ d.weekday }}</span>
+                <span class="text-lg font-bold mt-0.5 leading-none text-gray-600 group-[.active]:text-black">{{ d.dateStr }}</span>
+              </button>
+            </div>
+         </div>
+
+                                           <div ref="swipeContentVisual" :style="visualSwipeStyle" class="will-change-transform">
+            <div v-if="selectedDay === 'prep'" class="rounded-3xl transition-all duration-300 pb-24">
+                <div class="flex items-center justify-between mb-4 px-2">
+                  <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2"><i class="ph-fill ph-check-square text-[#34C759]"></i> {{ t('prepList') }}</h2>
+                </div>
+
+                <div class="space-y-3" id="sortable-pre-notes">
+                     
+                                    <div v-for="(note, i) in preTripNotes" :key="note.id" :data-id="note.id"
+                        @click="openPreNoteModal(note)"  
+                        class="relative group cursor-pointer">
+                     
+                     <div class="bg-white/70 backdrop-blur-xl rounded-2xl 
+    p-3 border border-white/60 shadow-sm transition-all active:scale-[0.99] active:bg-white/90 flex gap-3 items-center relative pr-8">
+                         
+                         <div class="drag-handle text-gray-300 hover:text-gray-500 py-1"><i class="ph-bold ph-dots-three-vertical text-lg"></i></div>
+
+                         <div class="relative cursor-pointer mt-0.5" @click.stop="togglePreNoteDone(note.id)">
+                   
+             <i class="ph text-2xl transition-colors" :class="note.isDone ?
+    'ph-check-circle-fill text-[#34C759]' : 'ph-circle text-gray-300 hover:text-gray-400'"></i>
+                         </div>
+
+                         <div class="flex-1 min-w-0">
+                             <div class="font-bold text-[16px] leading-snug break-words" :class="{'task-done': note.isDone, 'text-gray-900': !note.isDone}">{{ note.name }}</div>
+                    
+               
+                                                          <div v-if="(note.images && note.images.length > 0) || note.imageURL || note.linkURL" class="mt-2 flex items-center gap-3">
+                                 <div v-if="(note.images && note.images.length > 0) || note.imageURL" 
+                                      class="relative cursor-pointer w-16 h-16 flex-shrink-0 z-0" 
+                                      @click.stop="openImageViewer(note.images || [note.imageURL], 0)">
+                                      <div v-if="(note.images && note.images.length > 1)" class="stack-card-layer"></div>
+                                      <img :src="(note.images && note.images.length > 0) ? note.images[0] : note.imageURL" class="w-full h-full object-cover rounded-lg border border-gray-200 shadow-sm bg-white">
+                                      <div v-if="note.images && note.images.length > 1" class="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center">
+                                          <span class="text-white text-xs font-bold">+{{ note.images.length - 1 }}</span>
+                                      </div>
+                                 </div>
+
+                                        <a v-if="note.linkURL" href="#" @click.prevent.stop="openExternalLink(note.linkURL)" class="flex-shrink-0 text-2xl text-gray-400 hover:text-[#007AFF] transition-colors">
+                                    <i class="ph-fill" :class="getSocialIcon(note.linkURL)"></i>
+                       </a>
+                             </div>
+                         </div>
+                         <button @click.stop="removePreNote(note.id)" class="absolute top-3 right-3 text-gray-400 hover:text-[#FF3B30] 
+    p-1 transition-colors rounded-full">
+                            <i class="ph-bold ph-trash text-lg"></i>
+                         </button>
+                     </div>
+          </div>
+
+                </div>
+                
+       
+              <div v-if="preTripNotes.length === 0" class="py-12 text-center">
+                    <i class="ph ph-clipboard-text text-4xl text-gray-300 mb-2"></i>
+                    <p class="text-sm text-gray-400"> {{ t('noItems') }} </p>
+                </div>
+           </div>
+
+             <div v-else>
+                 <div class="relative pl-4 border-l-2 border-gray-300/50 ml-3 space-y-3 py-2">
+                        <div v-for="it in sortedItinerary" :key="it.id"
+                          @click="showLocationOnMap(it)"
+     
+                          class="relative group cursor-pointer">
+                        <div class="absolute -left-[23px] top-1 w-3.5 h-3.5 rounded-full bg-white border-[3px] border-gray-300 group-hover:border-[#007AFF] transition-colors z-10 shadow-sm"></div>
+                   
+                        <div class="bg-white/70 backdrop-blur-xl rounded-2xl p-3 border border-white/60 shadow-sm transition-all 
+    active:scale-[0.99] active:bg-white/90 relative pr-16">
+                            <div class="flex items-start gap-2">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex justify-between items-center mb-1">
+        
+                                      <div class="flex items-center gap-2">
+                                            <span class="text-xs font-bold text-[#007AFF] font-mono bg-blue-50/80 px-1.5 rounded">{{ it.time ||
+    '--:--' }}</span>
+                                        </div>
+                                    </div>
+                                   
+      <div class="font-bold text-[16px] text-gray-900 leading-snug">{{ it.title }}</div>
+                                    <div v-if="it.note" class="text-xs text-gray-500 mt-0.5 leading-relaxed">{{ it.note }}</div>
+                                    <div v-if="(it.address || '').trim() !== ''" class="mt-1 flex items-center gap-1.5 text-[10px] text-gray-400 group-hover:text-[#007AFF] transition-colors">
+             
+                                <i class="ph ph-map-pin-line"></i>
+                                        <span class="font-medium">查看地圖</span>
+                                     </div>
+     
+                                </div>
+                            </div>
+                            <div class="absolute top-3 right-3 flex items-center gap-1">
+                       
+              <button @click.stop="openItineraryModal(it)" class="text-gray-400 hover:text-[#007AFF] p-1 transition-colors rounded-full">
+                                    <i class="ph ph-pencil-simple text-lg"></i>
+                                </button>
+                          
+           <button @click.stop="removeItineraryItem(it.id)" class="text-gray-400 hover:text-[#FF3B30] p-1 transition-colors rounded-full">
+                                    <i class="ph ph-trash text-lg"></i>
+                                </button>
+                            </div>
+     
+                        </div>
+           </div>
+
+                 </div>
+                 
+                 <p v-if="sortedItinerary.length === 0" class="py-12 text-center text-gray-400 text-sm">
+                    <i class="ph ph-coffee text-3xl mb-2 block text-gray-300"></i>
+          
+                 今日無行程，享受自由時光
+                 </p>
+             </div>
+        </div>
+
+                  <transition name="fade">
+        <div v-if="selectedMapLocation" class="fixed bottom-24 left-4 right-4 z-50 ios-card bg-white/90 p-4 border-2 border-[#007AFF]/10 shadow-2xl">
+                <button @click="selectedMapLocation = null" class="absolute top-3 right-3 text-gray-400 hover:text-gray-600 p-1 rounded-full bg-gray-100 transition">
+                    <i class="ph ph-x text-base"></i>
+                </button>
+               <div class="mb-4 pr-8">
+                    <div class="flex items-center gap-3 mb-1">
+                        <div class="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500 flex-shrink-0">
+                             <i class="ph ph-map-pin-fill text-lg"></i>
+                         </div>
+                        <h4 class="text-lg font-bold text-gray-900 leading-tight">{{ selectedMapLocation.title }}</h4>
+                    </div>
+                    <p class="text-sm text-gray-500 pl-[44px] leading-relaxed">{{ selectedMapLocation.address }}</p>
+               </div>
+                               <div class="flex gap-3 pl-[44px]">
+                   <button @click="openMap(selectedMapLocation.address)"
+                       class="flex-1 h-10 px-4 flex items-center justify-center gap-2 bg-gray-100 text-gray-700 rounded-xl font-bold active:scale-95 transition text-sm border border-gray-200">
+                    <i class="ph ph-map-pin-area"></i> {{ t('openMaps') }}
+                    </button>
+                                      <button @click="openMap(selectedMapLocation.address)"
+                       class="flex-1 h-10 px-4 flex 
+                       items-center justify-center gap-2 bg-[#007AFF] text-white rounded-xl font-bold active:scale-95 transition text-sm shadow-sm shadow-blue-200">
+                    <i class="ph ph-navigation-arrow text-lg"></i> {{ t('navigate') }}
+                    </button>
+                 </div>
+
+                 <div class="mt-3 bg-gray-100/80 p-1 rounded-lg flex">
+                     <button v-for="app in ['Google', 'Apple', 'NAVER', 'Amap']" :key="app" 
+                        @click.stop="tempMapApp = app"
+                        class="flex-1 py-1 text-[10px] font-bold rounded-md transition-all text-center"
+                        :class="tempMapApp === app ? 'bg-white shadow-sm text-[#007AFF] ring-1 ring-black/5' : 'text-gray-400 hover:text-gray-600'">
+                        {{ t('map_name_' + app) }}
+                     </button>
+                 </div>
+
+            </div>
+        </transition>
+      </div>
+
+      <div v-if="currentTab === '記帳'" class="pb-20 animate-fade-in">
+          <div class="ios-card-dark-glass p-6 mb-4 relative">
+             <div class="dark-glass-gradient"></div>
+             <button @click="openMemberModal" class="absolute top-4 left-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center text-white transition-all z-20"><i class="ph-bold ph-gear text-lg"></i></button>
+             <button @click="openExpenseModal(null)" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center text-white transition-all z-20"><i class="ph-bold ph-plus text-lg"></i></button>
+
+                          <div v-show="expenseFilter !== 'settlement'">
+                 <div class="relative z-10 flex flex-col items-center justify-center mt-2">
+                     <div class="text-white/60 text-[11px] font-bold tracking-widest uppercase mb-1">{{ t('totalExpense') }} ({{ settings.homeCurrency }})</div>
+                     <div class="text-4xl font-light tracking-tight text-white flex items-baseline">
+                        <span class="text-2xl opacity-60 mr-1">$</span>{{ formatNumber(totalExpense.hkd) }}
+                     </div>
+                     <div class="text-white/40 text-xs font-medium mt-1">≈ {{ settings.localCurrency }} {{ formatNumber(totalExpense.twd) }}</div>
+                 </div>
+                 <div class="grid grid-cols-2 gap-4 mt-6 relative z-10">
+                    <div class="bg-white/5 rounded-2xl p-3 backdrop-blur-sm border border-white/5 flex flex-col items-center justify-center text-center">
+                         <div class="text-white/50 text-[10px] uppercase tracking-wider mb-1"><i class="ph-fill ph-credit-card mr-1"></i>{{ t('creditCard') }}</div>
+                         <div class="text-lg font-bold text-white mb-0.5">${{ formatNumber(expensesBreakdown.card.hkd) }}</div>
+                         <div class="text-[9px] text-white/40">≈ {{ settings.localCurrency }} {{ formatNumber(expensesBreakdown.card.twd) }}</div>
+                    </div>
+                    <div class="bg-white/5 rounded-2xl p-3 backdrop-blur-sm border border-white/5 flex flex-col items-center justify-center text-center">
+                        <div class="text-white/50 text-[10px] uppercase tracking-wider mb-1"><i class="ph-fill ph-coins mr-1"></i>{{ t('cash') }}</div>
+                        <div class="text-lg font-bold text-white mb-0.5">${{ formatNumber(expensesBreakdown.cash.hkd) }}</div>
+                        <div class="text-[9px] text-white/40">≈ {{ settings.localCurrency }} {{ formatNumber(expensesBreakdown.cash.twd) }}</div>
+                    </div>
+                 </div>
+             </div>
+
+                          <div v-show="expenseFilter === 'settlement'" class="relative z-10 flex flex-col items-center justify-center pt-2 pb-1 animate-fade-in" style="min-height: 180px;">
+                <canvas ref="settlementCanvas" width="400" height="400" style="width: 200px; height: 200px;" @click="handleChartClick"></canvas>
+                <div v-if="activeCategory" class="absolute top-2 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full shadow-sm border border-black/5 pointer-events-none transition-all animate-fade-in z-20 flex items-center gap-2">
+                     <div class="w-2 h-2 rounded-full shadow-[0_0_2px_rgba(0,0,0,0.2)]" :style="{background: catColors[activeCategory]}"></div>
+                     <span class="text-xs font-bold text-gray-700">{{ t(activeCategory) }}</span>
+                </div>
+             </div>
+          </div>
+       
+                    <div id="expense-filters" class="bg-gray-200/50 p-1 rounded-xl flex mb-4 mx-1 scroll-mt-32">
+              <button v-for="f in ['all', 'credit', 'cash', 'settlement']" :key="f" @click="expenseFilter = f" 
+                 class="flex-1 py-1.5 text-xs font-bold rounded-lg transition-all"
+                 :class="expenseFilter === f ? 'bg-white shadow-sm text-black' : 'text-gray-500'">
+                 {{ t('filter_' + f) }}
+              </button>
+          </div>
+
+          <div v-if="expenseFilter === 'settlement'" class="space-y-3">
+             <div v-if="settlementList.length === 0" class="text-center py-8 text-gray-400 text-sm">{{ t('noSettlement') }}</div>
+             <div v-for="s in settlementList" :key="s.name" class="ios-card p-4 flex justify-between items-center">
+                 <div class="font-bold text-lg">{{ s.name }}</div>
+                 <div class="text-right">
+                     <div class="text-[10px] uppercase text-gray-400 font-bold mb-0.5">{{ s.amount >= 0 ? t('shouldReceive') : t('shouldPay') }}</div>
+                     <div class="text-xl font-bold font-mono" :class="s.amount >= 0 ? 'text-green-500' : 'text-red-500'">{{ s.amount >= 0 ? '+' : '' }}{{ formatNumber(s.amount) }}</div>
+                 </div>
+             </div>
+          </div>
+          
+          <div v-else id="sortable-expenses" class="space-y-2">
+                          <div v-for="e in filteredExpenses" :key="e.id" :data-id="e.id" @click="openExpenseModal(e)" 
+                  class="bg-white/70 backdrop-blur-xl rounded-2xl p-3 border border-white/60 shadow-sm transition-all active:scale-[0.99] active:bg-white/90 cursor-pointer flex flex-col relative pr-8">
+                  
+                 <div class="w-full flex justify-between items-center mb-1.5">
+                     <div class="flex items-center gap-2">
+                         <div v-if="expenseFilter === 'all'" class="drag-handle text-gray-400 hover:text-gray-600 p-1 -ml-1"><i class="ph-bold ph-dots-three-vertical"></i></div>
+                         <span class="text-[10px] font-bold text-gray-400">{{ e.date }}</span>
+                         <span class="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded flex items-center gap-1">
+                                  <i class="ph" :class="getCategoryIcon(e.category)"></i> {{ t(e.category) }}
+                         </span>
+                     </div>
+                 </div>
+                 
+                                  <div class="w-full flex justify-between items-end pl-6">
+                     <div class="flex flex-col">
+                         <div class="font-bold text-xl text-blue-600"><span class="text-[10px] text-gray-500 mr-1">{{ e.currency }}</span>{{ formatNumber(e.amount) }}</div>
+                         <div v-if="e.exchange_rate_at_save" class="text-[9px] text-gray-400 font-mono mt-0.5 leading-none">
+                            {{ lang === 'zh' ? '匯率' : 'Rate' }} {{ Number(e.exchange_rate_at_save).toLocaleString('en-US', { maximumFractionDigits: 4 }) }}
+                         </div>
+                     </div>
+                     <div class="text-right">
+
+                         <div class="font-bold text-gray-900">{{ e.name }}</div>
+                         <div class="text-[10px] text-gray-400">{{ e.payer }} {{ lang === 'zh' ? '支付' : 'paid' }}</div>
+                     </div>
+                 </div>
+
+                 <button @click.stop="removeExpense(e.id)" class="absolute top-3 right-3 text-gray-400 hover:text-[#FF3B30] p-1 transition-colors rounded-full">
+                    <i class="ph-bold ph-trash text-lg"></i>
+                 </button>
+             </div>
+
+          </div>
+      </div>
+
+                  <div v-if="currentTab === '購物'" class="animate-fade-in pb-24 px-1">
+          <div class="flex items-center justify-between mb-4 px-2 mt-2">
+              <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2"><i class="ph-fill ph-shopping-bag text-pink-500"></i> {{ t('shopping') }}</h2>
+          </div>
+
+          <div class="space-y-3" id="sortable-shop-page">
+                          <div v-for="(item, i) in shoppingList" :key="item.id" :data-id="item.id" 
+                  @click="openShoppingModal(item)"
+                  class="relative group cursor-pointer">
+                  
+                                <div class="bg-white/70 backdrop-blur-xl rounded-2xl p-3 border border-white/60 shadow-sm transition-all active:scale-[0.99] active:bg-white/90 flex gap-3 items-center relative pr-8">
+                    
+                    <div class="drag-handle text-gray-300 hover:text-gray-500 py-1"><i class="ph-bold ph-dots-three-vertical text-lg"></i></div>
+
+                    <div class="cursor-pointer mt-0.5" @click.stop="item.isDone = !item.isDone; saveAll()">
+                        <i class="text-2xl transition-all" :class="item.isDone ? 'ph-fill ph-check-circle text-green-500' : 'ph-bold ph-circle text-gray-300 hover:text-gray-400'"></i>
+                    </div>
+
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold text-[16px] leading-snug break-words" :class="{'task-done': item.isDone, 'text-gray-900': !item.isDone}">{{ item.name }}</div>
+                 
+                                                <div v-if="(item.images && item.images.length > 0) || item.imageURL || item.linkURL" class="mt-2 flex items-center gap-3">
+                             <div v-if="(item.images && item.images.length > 0) || item.imageURL" 
+                                  class="relative cursor-pointer w-16 h-16 flex-shrink-0 z-0" 
+                                  @click.stop="openImageViewer(item.images || [item.imageURL], 0)">
+                                  <div v-if="(item.images && item.images.length > 1)" class="stack-card-layer"></div>
+                                  <img :src="(item.images && item.images.length > 0) ? item.images[0] : item.imageURL" class="w-full h-full object-cover rounded-lg border border-gray-200 shadow-sm bg-white">
+                                  <div v-if="item.images && item.images.length > 1" class="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center">
+                                      <span class="text-white text-xs font-bold">+{{ item.images.length - 1 }}</span>
+                                  </div>
+                             </div>
+                             
+                                                          
+                      <a v-if="item.linkURL" href="#" @click.prevent.stop="openExternalLink(item.linkURL)" class="flex-shrink-0 text-2xl text-gray-400 hover:text-pink-500 transition-colors">
+                                  <i class="ph-fill" :class="getSocialIcon(item.linkURL)"></i>
+                           </a>
+                        </div>
+                    </div>
+
+                    <button @click.stop="removeShoppingItem(item.id)" class="absolute top-3 right-3 text-gray-400 hover:text-[#FF3B30] p-1 transition-colors rounded-full">
+                        <i class="ph-bold ph-trash text-lg"></i>
+                    </button>
+               </div>
+            </div>
+
+          </div>
+          
+          <div v-if="shoppingList.length === 0" class="py-10 text-center text-sm text-gray-400">
+             <p>{{ t('noItems') }}</p>
+          </div>
+        
+          <button @click="openShoppingModal()" class="floating-add-btn bg-pink-500">
+             <i class="ph-bold ph-plus"></i>
+          </button>
+      </div>
+
+                     <div v-if="currentTab === '設定'" class="animate-fade-in pb-24">
+         <div class="ios-card p-5 space-y-6">
+             <div class="flex justify-between items-center mb-4">
+                 <h2 class="text-xl font-bold">{{ t('settings') }}</h2>
+<button @click="adminLoginOpen = true" class="text-gray-400 hover:text-gray-600 transition-colors rounded-full p-3 active:bg-gray-200/50 -mr-2">
+    <i class="ph-fill ph-user-circle text-4xl"></i>
+</button>
+             </div>
+             <div>
+                 <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('routeHeader') }}</label>
+                 <input v-model="editingSettings.route" class="ios-input font-bold" placeholder="HKG ✈️ KIX">
+             </div>
+             <div class="grid grid-cols-2 gap-4">
+                 <div><label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('startDate') }}</label><input v-model="editingSettings.startDate" type="date" class="ios-input"></div>
+                 <div><label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('endDate') }}</label><input v-model="editingSettings.endDate" type="date" class="ios-input"></div>
+             </div>
+             <div class="grid grid-cols-2 gap-4">
+                 <div><label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('localCurr') }}</label><input v-model="editingSettings.localCurrency" class="ios-input font-mono uppercase" placeholder="TWD"></div>
+                 <div><label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('homeCurr') }}</label><input v-model="editingSettings.homeCurrency" class="ios-input font-mono uppercase" placeholder="HKD"></div>
+             </div>
+             <div class="grid grid-cols-2 gap-4">
+                 <div>
+                     <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('weatherLoc') }} (中文)</label>
+                     <input v-model="editingSettings.weatherLoc" class="ios-input" placeholder="e.g. 台北">
+                 </div>
+                 <div>
+                     <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('weatherLoc') }} (EN)</label>
+                     <input v-model="editingSettings.weatherLocEn" class="ios-input" placeholder="e.g. Taipei">
+                 </div>
+             </div>
+
+             <div class="mt-4">
+                 <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('mapApp') }}</label>
+                 <div class="bg-gray-200/50 p-1 rounded-xl flex">
+                                <button v-for="app in ['Google', 'Apple', 'NAVER', 'Amap']" :key="app" @click="selectMapApp(app)" 
+                        class="flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all"
+                                                :class="mapApp === app ? 'bg-white shadow-sm text-black' : 'text-gray-500'">
+                        {{ t('map_name_' + app) }}
+                     </button>
+                 </div>
+             </div>
+
+             <div class="mt-4">
+                                  <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('homeDataCard') }}</label>
+                 <div class="bg-gray-200/50 p-1 rounded-xl flex">
+                     <button @click="editingSettings.showInfoCard = true" class="flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all" :class="editingSettings.showInfoCard !== false ?
+'bg-white shadow-sm text-black' : 'text-gray-500'">{{ t('show') }}</button>
+                     <button @click="editingSettings.showInfoCard = false" class="flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all" :class="editingSettings.showInfoCard === false ?
+'bg-white shadow-sm text-black' : 'text-gray-500'">{{ t('hide') }}</button>
+                 </div>
+             </div>
+
+             <div class="mt-4">
+                 <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('showNavPill') }}</label>
+                 <div class="bg-gray-200/50 p-1 rounded-xl flex">
+                     <button @click="editingSettings.showNavPill = true" class="flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all" :class="editingSettings.showNavPill !== false ? 'bg-white shadow-sm text-black' : 'text-gray-500'">{{ t('show') }}</button>
+                     <button @click="editingSettings.showNavPill = false" class="flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all" :class="editingSettings.showNavPill === false ? 'bg-white shadow-sm text-black' : 'text-gray-500'">{{ t('hide') }}</button>
+                 </div>
+             </div>
+
+             <div class="flex gap-3 mt-4">
+                 <button @click="cancelSettings" class="btn-ios-cancel">{{ t('cancel') }}</button>
+                 <button @click="saveSettings" class="btn-ios-primary">{{ t('save') }}</button>
+             </div>
+          </div>
+      </div>
+
+            <div v-if="currentTab === '行程'">
+          <button v-if="selectedDay === 'prep'" @click="openPreNoteModal()" class="floating-add-btn bg-[#34C759]">
+              <i class="ph-bold ph-plus"></i>
+          </button>
+          <button v-else @click="openItineraryModal(null)" class="floating-add-btn bg-[#007AFF]">
+              <i class="ph-bold ph-plus"></i>
+          </button>
+      </div>
+
+<div class="flex flex-col items-center justify-end pb-4 h-32 opacity-30 select-none pointer-events-none">
+          <div class="text-[10px] font-bold uppercase tracking-widest">Travel Sync System</div>
+          <div class="text-[9px] font-mono mt-0.5">Build {{ appVersion }}</div>
+       </div>
+
+    </main>
+
+    <nav class="fixed bottom-6 left-0 right-0 z-50 px-4 pointer-events-none">
+            <div class="iphone-dock pointer-events-auto">
+        <button v-for="tab in ['首頁','行程','記帳','購物','設定']" :key="tab"
+ @click="currentTab=tab" class="group flex flex-col items-center justify-center flex-1 transition-all text-gray-400" :class="{'!text-[#007AFF]': currentTab===tab}">
+            <i class="text-[28px] mb-1 transition-transform group-active:scale-90" :class="[currentTab===tab ? 'ph-fill' : 'ph-bold', {'首頁':'ph-house','行程':'ph-map-trifold','記帳':'ph-wallet','購物':'ph-shopping-bag','設定':'ph-gear'}[tab]]"></i>
+            <span class="text-[10px] font-semibold">{{ t(tab) }}</span>
+        </button>
+      </div>
+    </nav>
+    
+    <div v-if="flightModalOpen" class="modal-backdrop" @click.self="flightModalOpen=false">
+                <div class="ios-modal-container">
+            <div class="ios-modal-header">
+                {{ t('editFlight') }}
+                <div class="flex justify-center mt-2">
+                    <div class="bg-gray-200 p-0.5 rounded-lg flex">
+                         <button @click="currentFlightView='outbound'; syncModalToView()" class="px-3 py-1 text-xs font-bold rounded-md transition-all" :class="currentFlightView==='outbound' ? 'bg-white shadow text-black' : 'text-gray-500'">{{ t('outbound') }}</button>
+                         <button @click="currentFlightView='return'; syncModalToView()" class="px-3 py-1 text-xs font-bold rounded-md transition-all" :class="currentFlightView==='return' ? 'bg-white shadow text-black' : 'text-gray-500'">{{ t('return') }}</button>
+                    </div>
+                </div>
+            </div>
+            <div class="ios-modal-body space-y-3">
+                <input v-model="newFlight.code" class="ios-input" :placeholder="t('flightCode')">
+                <input v-model="newFlight.title" class="ios-input" :placeholder="t('airline')">
+                <div class="flex gap-2"><input v-model="newFlight.fromCode" class="ios-input text-center uppercase" placeholder="HKG"><input v-model="newFlight.toCode" class="ios-input text-center uppercase" placeholder="TPE"></div>
+                <div class="flex gap-2"><input v-model="newFlight.depTime" type="time" class="ios-input"><input v-model="newFlight.arrTime" type="time" class="ios-input"></div>
+                <div class="flex gap-2"><input v-model="newFlight.fromTerminal" class="ios-input" :placeholder="t('depTerm')"><input v-model="newFlight.toTerminal" class="ios-input" :placeholder="t('arrTerm')"></div>
+                <input v-model="newFlight.gate" class="ios-input" :placeholder="t('gate')">
+                <select v-model="newFlight.status" class="ios-input">
+                    <option value="Scheduled">{{ t('Scheduled') }}</option>
+                    <option value="On Time">{{ t('On Time') }}</option>
+                    <option value="Delayed">{{ t('Delayed') }}</option>
+                    <option value="Boarding">{{ t('Boarding') }}</option>
+                    <option value="Landed">{{ t('Landed') }}</option>
+                </select>
+                <input v-model="newFlight.liveLink" class="ios-input" :placeholder="t('trackingUrl')">
+            </div>
+            <div class="ios-modal-footer"><button @click="flightModalOpen=false" class="btn-ios-cancel">{{ t('cancel') }}</button><button @click="saveFlight" class="btn-ios-primary">{{ t('save') }}</button></div>
+        </div>
+    </div>
+
+    <div v-if="expenseModalOpen" class="modal-backdrop" @click.self="expenseModalOpen=false">
+               <div class="ios-modal-container">
+            <div class="ios-modal-header relative">
+                 <div class="flex items-center justify-center gap-2 text-[#007AFF] font-bold text-lg">
+                     <i class="ph" :class="getCategoryIcon(newExpense.category)"></i>
+                     <span>{{ t(newExpense.category) }}</span>
+                     <i class="ph ph-caret-down text-sm"></i>
+                 </div>
+                 <select v-model="newExpense.category" class="absolute inset-0 w-full h-full opacity-0 z-10">
+                    <option v-for="cat in expenseCats" :key="cat" :value="cat.name">{{ t(cat.name) }}</option>
+                 </select>
+            </div>
+            <div class="ios-modal-body calc-body gap-2">
+                 <div class="flex gap-2">
+                     <div class="relative w-24 flex-shrink-0">
+                         <select v-model="newExpense.currency" class="ios-input appearance-none font-bold text-center h-12">
+                            <option :value="settings.localCurrency">{{ settings.localCurrency }}</option>
+                            <option :value="settings.homeCurrency">{{ settings.homeCurrency }}</option>
+                            <option value="USD">USD</option>
+                            <option value="JPY">JPY</option>
+                         </select>
+                         <i class="ph ph-caret-down absolute right-2 top-[18px] text-gray-400 text-xs pointer-events-none"></i>
+                     </div>
+                     <div class="ios-input flex-1 text-2xl font-bold text-right tracking-tight bg-gray-50 flex items-center justify-end px-3 h-12 overflow-hidden">
+                        {{ newExpense.amount || '0' }}
+                     </div>
+                 </div>
+                 <div class="flex flex-col gap-2 p-2 bg-gray-100/60 rounded-xl mb-1">
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-bold text-gray-400 w-12 text-right">{{ t('payer') }}</span>
+                        <select v-model="newExpense.payer" class="flex-1 bg-white h-8 rounded-lg text-xs font-bold px-2 border border-gray-200">
+                           <option v-for="m in members" :key="m" :value="m">{{ m }}</option>
+                        </select>
+                    </div>
+                     <div class="flex items-start gap-2">
+                        <div class="w-12 text-right mt-1.5 flex flex-col items-end">
+                             <button @click="toggleAllParticipants" class="text-[10px] font-bold text-[#007AFF]">{{ t('all') }}</button>
+                         </div>
+                         <div class="flex-1 flex flex-wrap gap-1.5">
+                             <button v-for="m in members" :key="m" @click="toggleParticipant(m)"
+                               class="px-2 py-1 rounded-md text-[10px] font-bold border transition-all"
+                                :class="newExpense.involved.includes(m) ? 'bg-[#007AFF] text-white border-[#007AFF]' : 'bg-white text-gray-500 border-gray-200'">
+                                 {{ m }}
+                             </button>
+                         </div>
+                     </div>
+                </div>
+                 <div class="flex gap-2">
+                     <input v-model="newExpense.name" class="ios-input flex-1 text-center font-medium h-10 text-sm" :placeholder="t('desc')">
+                     <input v-model="newExpense.date" type="date" class="ios-input w-32 text-gray-600 text-sm h-10 text-center">
+                 </div>
+                 <div class="flex gap-2 mb-1 p-1 bg-gray-200/50 rounded-xl">
+                    <button @click="newExpense.paymentMethod='cash'" class="flex-1 h-10 rounded-lg font-bold text-sm flex items-center justify-center gap-1.5 transition-all" :class="newExpense.paymentMethod==='cash' ? 'bg-white text-black shadow-sm ring-1 ring-black/5' : 'text-gray-400'"><i class="ph ph-coins text-lg"></i> {{ t('cash') }}</button>
+                    <button @click="newExpense.paymentMethod='credit_card'" class="flex-1 h-10 rounded-lg font-bold text-sm flex items-center justify-center gap-1.5 transition-all" :class="newExpense.paymentMethod==='credit_card' ? 'bg-white text-black shadow-sm ring-1 ring-black/5' : 'text-gray-400'"><i class="ph ph-credit-card text-lg"></i> {{ t('creditCard') }}</button>
+                 </div>
+                 <div class="calc-grid">
+                     <button class="calc-btn top-op" @click="handleCalcInput('C')">C</button>
+                     <button class="calc-btn top-op" @click="handleCalcInput('/')">÷</button>
+                     <button class="calc-btn top-op" @click="handleCalcInput('*')">×</button>
+                     <button class="calc-btn top-op" @click="handleCalcInput('DEL')"><i class="ph ph-backspace"></i></button>
+                     <button class="calc-btn" @click="handleCalcInput('7')">7</button>
+                     <button class="calc-btn" @click="handleCalcInput('8')">8</button>
+                     <button class="calc-btn" @click="handleCalcInput('9')">9</button>
+                     <button class="calc-btn op" @click="handleCalcInput('-')">−</button>
+                     <button class="calc-btn" @click="handleCalcInput('4')">4</button>
+                     <button class="calc-btn" @click="handleCalcInput('5')">5</button>
+                     <button class="calc-btn" @click="handleCalcInput('6')">6</button>
+                     <button class="calc-btn op" @click="handleCalcInput('+')">+</button>
+                     <button class="calc-btn" @click="handleCalcInput('1')">1</button>
+                     <button class="calc-btn" @click="handleCalcInput('2')">2</button>
+                     <button class="calc-btn" @click="handleCalcInput('3')">3</button>
+                     <button class="calc-btn op" @click="handleCalcInput('=')">=</button>
+                     <button class="calc-btn col-span-2" @click="handleCalcInput('0')">0</button>
+                     <button class="calc-btn" @click="handleCalcInput('.')">.</button>
+                     <button class="calc-btn done-btn" @click="saveExpense">{{ t('done') }}</button>
+                 </div>
+            </div>
+            <div class="ios-modal-footer">
+                <button v-if="newExpense.id" @click="removeExpense(newExpense.id)" class="btn-ios-cancel text-red-500">{{ t('delete') }}</button>
+                <button @click="expenseModalOpen=false" class="btn-ios-cancel">{{ t('cancel') }}</button>
+            </div>
+        </div>
+    </div>
+    
+    <div v-if="memberModalOpen" class="modal-backdrop" @click.self="memberModalOpen=false">
+                <div class="ios-modal-container">
+             <div class="ios-modal-header">{{ t('manageMembers') }}</div>
+              <div class="ios-modal-body space-y-3">
+                 <div v-for="(m, idx) in members" :key="idx" class="flex justify-between items-center p-3 bg-white rounded-xl shadow-sm">
+                     <span class="font-bold">{{ m }}</span>
+                     <button v-if="members.length > 1" @click="removeMember(m)" class="text-red-500"><i class="ph-bold ph-trash"></i></button>
+                 </div>
+                 <div class="flex gap-2 mt-4">
+                     <input v-model="newMemberName" class="ios-input" :placeholder="t('newName')">
+                     <button @click="addMember" class="bg-black text-white px-4 rounded-xl font-bold"><i class="ph-bold ph-plus"></i></button>
+                 </div>
+             </div>
+             <div class="ios-modal-footer">
+                 <button @click="memberModalOpen=false" class="btn-ios-cancel">{{ t('done') }}</button>
+             </div>
+        </div>
+    </div>
+
+    <div v-if="itineraryModalOpen" class="modal-backdrop" @click.self="itineraryModalOpen=false">
+                <div class="ios-modal-container">
+            <div class="ios-modal-header">{{ t('editEvent') }}</div>
+            <div class="ios-modal-body space-y-3">
+                <select v-model="newItineraryItem.dayIndex" class="ios-input">
+                    <option v-for="(d, i) in dayList" :key="i" :value="i">Day {{ i + 1 }} - {{ d.dateStr }}</option>
+                </select>
+                <div class="flex gap-2">
+                    <input type="time" v-model="newItineraryItem.time" class="ios-input !w-auto text-center font-bold">
+                    <input v-model="newItineraryItem.title" class="ios-input flex-1" :placeholder="t('title')">
+                </div>
+                <div class="relative">
+                    <i class="ph ph-map-pin absolute left-3 top-3.5 text-gray-400"></i>
+                                        <input v-model="newItineraryItem.address" class="ios-input pl-10 text-sm" :placeholder="addressPlaceholder">
+                </div>
+                <textarea v-model="newItineraryItem.note" class="ios-input" :placeholder="t('notes')" rows="3"></textarea>
+            </div>
+            <div class="ios-modal-footer">
+                <button @click="itineraryModalOpen=false" class="btn-ios-cancel">{{ t('cancel') }}</button>
+                <button @click="saveItineraryItem" class="btn-ios-primary">{{ t('save') }}</button>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="shoppingModalOpen" class="modal-backdrop" @click.self="shoppingModalOpen=false">
+                <div class="ios-modal-container">
+            <div class="ios-modal-header">{{ t('shoppingItem') }}</div>
+            <div class="ios-modal-body space-y-4">
+                <input v-model="newShoppingItem.name" class="ios-input font-medium" :placeholder="t('itemName')">
+                <div class="border-t border-gray-100 pt-4">
+                                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">{{ t('imgRef') }} ({{ tempImages.length }}/5)</label>
+                    
+                    <div v-if="tempImages.length > 0" class="grid grid-cols-4 gap-2 mb-3">
+                        <div v-for="(img, idx) in tempImages" :key="idx" class="relative aspect-square rounded-xl overflow-hidden border border-gray-200">
+                            <img :src="img" class="w-full h-full object-cover">
+                            <button @click.stop="removeTempImage(idx)" class="absolute top-0.5 right-0.5 bg-black/50 text-white rounded-full p-0.5 hover:bg-red-500 transition">
+                                <i class="ph-bold ph-x text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <label v-if="tempImages.length < 5" class="flex flex-col items-center justify-center w-full p-4 border border-dashed border-gray-300 rounded-2xl cursor-pointer hover:bg-gray-50 transition">
+                         <div class="text-center">
+                            <i class="ph ph-image text-2xl text-gray-300 mb-1"></i>
+                            <div class="text-[#007AFF] text-xs font-medium">{{ t('uploadImg') }}</div>
+                         </div>
+                         <input type="file" accept="image/*" multiple class="hidden" @change="handleMultiFileUpload">
+                    </label>
+                    
+                    <div class="relative mt-4">
+                                                <i class="ph ph-link absolute left-2 top-2.5 text-gray-400"></i>
+                        <input v-model="newShoppingItem.linkURL" class="w-full p-2 pl-7 text-xs text-gray-600 bg-gray-50 rounded-lg focus:outline-none 
+focus:bg-white border border-transparent focus:border-blue-200 transition-all" placeholder="URL">
+                    </div>
+                </div>
+            </div>
+            <div class="ios-modal-footer">
+                <button v-if="newShoppingItem.id" @click="removeShoppingItem(newShoppingItem.id)" class="btn-ios-cancel text-red-500">{{ t('delete') }}</button>
+                <button @click="shoppingModalOpen=false" class="btn-ios-cancel">{{ t('cancel') }}</button>
+                <button @click="saveShoppingItem" class="btn-ios-primary">{{ t('save') }}</button>
+            </div>
+        </div>
+    </div>
+    
+                <div v-if="infoModalOpen" class="modal-backdrop" @click.self="infoModalOpen=false">
+        <div class="ios-modal-container">
+            <div class="ios-modal-header">{{ t('editInfo') }}</div>
+            <div class="ios-modal-body space-y-3">
+                <input v-model="newInfoItem.title" class="ios-input" :placeholder="t('title')">
+            </div>
+            <div class="ios-modal-footer">
+                <button v-if="newInfoItem.id" @click="removeInfo(newInfoItem.id)" class="btn-ios-cancel text-red-500">{{ t('delete') }}</button>
+                <button @click="infoModalOpen=false" class="btn-ios-cancel">{{ t('cancel') }}</button>
+                <button @click="saveInfoItem" class="btn-ios-primary">{{ t('save') }}</button>
+            </div>
+        </div>
+    </div>
+
+            <div v-if="preNoteModalOpen" class="modal-backdrop" @click.self="preNoteModalOpen=false">
+            <div class="ios-modal-container">
+            <div class="ios-modal-header">{{ t('editItem') }}</div>
+            <div class="ios-modal-body space-y-4">
+                <input v-model="editingPreNote.name" class="ios-input font-medium" :placeholder="t('taskName')">
+                <div class="border-t border-gray-100 pt-4">
+                    
+                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">{{ t('imgRef') }} ({{ tempImages.length }}/5)</label>
+                    
+                    <div v-if="tempImages.length > 0" class="grid grid-cols-4 gap-2 mb-3">
+                     
+   <div v-for="(img, idx) in tempImages" :key="idx" class="relative aspect-square rounded-xl overflow-hidden border border-gray-200">
+                            <img :src="img" class="w-full h-full object-cover">
+                            <button @click.stop="removeTempImage(idx)" class="absolute top-0.5 right-0.5 bg-black/50 text-white rounded-full p-0.5 hover:bg-red-500 transition">
+                
+                 <i class="ph-bold ph-x text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+         
+            <label v-if="tempImages.length < 5" class="flex flex-col items-center justify-center w-full p-4 border border-dashed border-gray-300 rounded-2xl cursor-pointer hover:bg-gray-50 transition">
+                         <div class="text-center">
+                            <i class="ph ph-image text-2xl text-gray-300 mb-1"></i>
+              
+               <div class="text-[#007AFF] text-xs font-medium">{{ t('uploadImg') }}</div>
+                         </div>
+                         <input type="file" accept="image/*" multiple class="hidden" @change="handleMultiFileUpload">
+                    </label>
+      
+               
+                    <div class="relative mt-4">
+                                                <i class="ph ph-link absolute left-2 top-2.5 text-gray-400"></i>
+          
+               <input v-model="editingPreNote.linkURL" class="w-full p-2 pl-7 text-xs text-gray-600 bg-gray-50 rounded-lg focus:outline-none 
+focus:bg-white border border-transparent focus:border-blue-200 transition-all" placeholder="Instagram / Threads URL">
+                    </div>
+                </div>
+            </div>
+            <div class="ios-modal-footer">
+          
+                <button v-if="editingPreNote.id" @click="removePreNote(editingPreNote.id)" class="btn-ios-cancel text-red-500">{{ t('delete') }}</button>
+                <button @click="preNoteModalOpen=false" class="btn-ios-cancel">{{ t('cancel') }}</button>
+                <button @click="savePreNoteEdit" class="btn-ios-primary">{{ t('save') }}</button>
+            </div>
+        </div>
+    </div>
+
+            <div v-if="adminLoginOpen" class="modal-backdrop" @click.self="adminLoginOpen=false">
+        <div class="ios-modal-container" style="max-width: 320px;">
+            <div class="ios-modal-header">Admin Login</div>
+            <div class="ios-modal-body space-y-3">
+                <input v-model="adminCreds.u" class="ios-input" placeholder="Username" autocapitalize="off">
+                <input v-model="adminCreds.p" type="password" class="ios-input" placeholder="Password">
+            </div>
+            <div class="ios-modal-footer">
+                <button @click="adminLoginOpen=false" class="btn-ios-cancel">{{ t('cancel') }}</button>
+                <button @click="attemptAdminLogin" class="btn-ios-primary">Login</button>
+            </div>
+        </div>
+    </div>
+
+        <div v-if="navPillModalOpen" class="modal-backdrop" @click.self="navPillModalOpen=false">
+        <div class="ios-modal-container" style="max-width: 320px;">
+            <div class="ios-modal-header">{{ t('setDest') }}</div>
+            <div class="ios-modal-body space-y-3">
+                <p class="text-xs text-gray-400 px-2">{{ t('setDestDesc') }}</p>
+                <input v-model="newNavAddress" class="ios-input font-bold" :placeholder="t('mapAddr')">
+            </div>
+            <div class="ios-modal-footer">
+                <button @click="navPillModalOpen=false" class="btn-ios-cancel">{{ t('cancel') }}</button>
+                <button @click="saveNavAddress" class="btn-ios-primary">{{ t('save') }}</button>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="adminEditOpen" class="modal-backdrop">
+        <div class="ios-modal-container" style="max-width: 320px;">
+            <div class="ios-modal-header">Active Trip ID</div>
+            <div class="ios-modal-body space-y-3">
+                <div class="text-xs text-gray-400 text-center px-4">Modifying this will change the data source for ALL users immediately.</div>
+                <input v-model="newTripIdInput" class="ios-input font-mono text-center font-bold" placeholder="trip_id">
+            </div>
+            <div class="ios-modal-footer">
+                <button @click="adminEditOpen=false" class="btn-ios-cancel">{{ t('cancel') }}</button>
+                <button @click="saveActiveTripId" class="btn-ios-primary">{{ t('save') }}</button>
+            </div>
+        </div>
+    </div>
+
+        <transition name="fade">
+        <div v-if="imageViewer.open" 
+
+             class="fixed inset-0 z-[200] bg-black flex flex-col justify-center items-center overflow-hidden touch-none"
+             @touchstart="handleViewerTouchStart"
+             @touchmove="handleViewerTouchMove"
+             @touchend="handleViewerTouchEnd">
+            
+             <button @click="closeImageViewer" class="absolute top-12 right-6 text-white/80 hover:text-white z-[210] p-2 bg-black/20 rounded-full backdrop-blur-md">
+                 <i class="ph-bold ph-x text-2xl"></i>
+             </button>
+
+             <div class="flex transition-transform duration-300 ease-out h-full w-full items-center"
+                  :style="{ 
+                      transform: `translateX(calc(${-imageViewer.index * 100}% + ${imageViewer.touch.diffX}px)) translateY(${imageViewer.touch.diffY}px)`,
+                      opacity: 1 - Math.min(Math.abs(imageViewer.touch.diffY) / 500, 0.8)
+                  }">
+                  
+                  <div v-for="(img, idx) in imageViewer.list" :key="idx" 
+                       class="w-full h-full flex-shrink-0 flex items-center justify-center p-0 relative">
+                      <img :src="img" class="max-w-full max-h-screen object-contain select-none shadow-2xl" draggable="false">
+                  </div>
+             </div>
+
+             <div v-if="imageViewer.list.length > 1" class="absolute bottom-10 flex gap-2 z-[210]">
+                 <div v-for="(_, i) in imageViewer.list" :key="i"
+                      class="w-1.5 h-1.5 rounded-full transition-all duration-300"
+                      :class="imageViewer.index === i ? 'bg-white scale-125' : 'bg-white/30'">
+                 </div>
+             </div>
+        </div>
+    </transition>
+
+  </div>
+</body>
+<script>
+    const { createApp, ref, reactive, computed, onMounted, nextTick, watch } = Vue;
+
+    // Supabase Config
+    const SUPABASE_URL = 'https://myrhatzdypiwwgmmfbuw.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_bnnah-2fsCaQnKZDoKNJQw_NuYQVvKi';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    createApp({
+      setup() {
+        // --- 1. App State & Core Config ---
+        const appVersion = ref('v260118-14.02');
+        const currentTab = ref('首頁');
+        const syncState = ref('loading');
+        const isInitialized = ref(false);
+        const notification = ref(null);
+        const lang = ref(localStorage.getItem('app_lang') || 'zh');
+        
+        // Admin State
+        const tripId = ref(null);
+        const isAdminLoggedIn = ref(false);
+        const adminLoginOpen = ref(false);
+        const adminEditOpen = ref(false);
+        const adminCreds = reactive({ u: '', p: '' });
+        const newTripIdInput = ref('');
+
+        // Intro Loading State
+        const introVisible = ref(true);
+        const introFading = ref(false);
+        const introProgress = ref(0);
+        const introAppReady = ref(false);
+        const introStep = computed(() => {
+            if (introProgress.value < 75) return 0;
+            if (introProgress.value < 90) return 1;
+            return 2;
+        });
+        const introText = computed(() => {
+            if (introStep.value === 0) return '收拾行李中';
+            if (introStep.value === 1) return '檢查地圖同車程';
+            return '準備出發～就快得啦';
+        });
+
+        // --- 2. Data Models ---
+        const settings = reactive({
+            route: 'HKG ✈️ KIX', startDate: '2026-03-22', endDate: '2026-03-27',
+                        localCurrency: 'TWD', homeCurrency: 'HKD', weatherLoc: '台北', weatherLocEn: 'Taipei',
+            showInfoCard: true, showNavPill: true, navAddress: ''
+        });
+        const editingSettings = reactive({});
+        const itinerary = reactive([[], [], [], [], [], []]);
+        const preTripNotes = ref([]);
+        const shoppingList = ref([]);
+        const expenses = ref([]);
+        const infoList = ref([]);
+        const members = ref(['Me', 'Partner']);
+        
+        // Flights Data
+        const currentFlightView = ref('outbound');
+        const isFlightMinimized = ref(false);
+        const flights = reactive({
+            outbound: { id:'outbound', code:'CX400', title:'Cathay Pacific', fromCode:'HKG', fromTerminal:'1', toCode:'TPE', toTerminal:'1', depTime:'13:00', arrTime:'14:50', status:'Scheduled', gate:'24', liveLink:'' },
+            return: { id:'return', code:'CX401', title:'Cathay Pacific', fromCode:'TPE', fromTerminal:'1', toCode:'HKG', toTerminal:'1', depTime:'16:00', arrTime:'17:50', status:'Scheduled', gate:'--', liveLink:'' }
+        });
+        const displayedFlight = computed(() => flights[currentFlightView.value]);
+
+        // Rate & Weather Data
+        const rateDisplayMode = ref(Number(localStorage.getItem('rate_mode') || 0));
+        const currentLiveRate = ref(4.0);
+        const lastRateUpdateLabel = ref('--:--');
+        // Effective Rate: Live Rate with 3% Fee adjustment
+        const effectiveRate = computed(() => currentLiveRate.value * 0.97);
+        const weather = reactive({ temp: '--', min: '--', max: '--', code: 0, feelsLike: '--', humidity: '--', uv: '--', rain: 0, warning: null });
+
+        // --- 3. UI Helper Constants ---
+        const expenseCats = [
+            {name: '門票', icon: 'ph-ticket'}, {name: '交通', icon: 'ph-train'},
+            {name: '購物', icon: 'ph-shopping-bag'}, {name: '餐飲', icon: 'ph-fork-knife'},
+            {name: '娛樂', icon: 'ph-confetti'}, {name: '住宿', icon: 'ph-bed'},
+            {name: '服務', icon: 'ph-hand-coins'}, {name: '其他', icon: 'ph-dots-three-circle'}
+        ];
+        const dayColors = ['border-purple-500', 'border-[#007AFF]', 'border-pink-500', 'border-orange-500', 'border-yellow-500', 'border-teal-500', 'border-slate-500', 'border-gray-400'];
+
+        // --- 4. Modals State ---
+        const flightModalOpen = ref(false); const newFlight = reactive({});
+        const preNoteModalOpen = ref(false); const editingPreNote = reactive({});
+        const shoppingModalOpen = ref(false); const newShoppingItem = reactive({});
+        const expenseModalOpen = ref(false); const newExpense = reactive({});
+        const itineraryModalOpen = ref(false); const newItineraryItem = reactive({});
+        const memberModalOpen = ref(false); const newMemberName = ref('');
+        const infoModalOpen = ref(false); const newInfoItem = reactive({});
+        
+        // --- 5. Logic: Helper Functions ---
+        const generateId = () => Date.now() + Math.random().toString(36).substr(2, 5);
+        const formatNumber = (n) => Number(n).toLocaleString('en-US', {maximumFractionDigits: 1});
+        const showToast = (msg) => { notification.value = msg; setTimeout(()=>notification.value=null, 3000); };
+        const scrollToTop = () => { const main = document.querySelector('main'); if(main) main.scrollTo({top: 0, behavior: 'smooth'}); };
+
+        // Unified Currency Calculation Helper
+        // Calculates the amount in Home Currency (HKD)
+        const calculateHomeAmount = (expense) => {
+            const amt = parseFloat(expense.amount) || 0;
+            if (expense.currency === settings.homeCurrency) return amt;
+            
+            if (expense.currency === settings.localCurrency) {
+                // Use historical rate if saved, otherwise live effective rate
+                const rate = expense.exchange_rate_at_save || effectiveRate.value;
+                return amt / rate;
+            }
+            
+            if (expense.currency === 'USD') return amt * 7.8;
+            if (expense.currency === 'JPY') return amt * 0.052;
+            
+            return amt; // Fallback
+        };
+
+        // Translation Dictionary
+        const t = (k) => {
+            const dict = {
+                'cancel': { zh: '取消', en: 'Cancel' }, 'save': { zh: '儲存', en: 'Save' }, 'delete': { zh: '刪除', en: 'Delete' }, 'done': { zh: '完成', en: 'Done' },
+                'show': { zh: '顯示', en: 'Show' }, 'hide': { zh: '隱藏', en: 'Hide' }, 'homeDataCard': { zh: '首頁資訊卡片', en: 'Home Info Card' },
+                'prepListHeader': { zh: '準備清單', en: 'Preparation List' }, 'quickAddPlaceholder': { zh: '快速新增項目...', en: 'Quick add item...' },
+                'add': { zh: '新增', en: 'Add' }, 'title': { zh: '標題', en: 'Title' }, 'notes': { zh: '備註', en: 'Notes' }, 'details': { zh: '詳細內容...', en: 'Details...' },
+                'editItem': { zh: '編輯項目', en: 'Edit Item' }, 'tripRoute': { zh: '旅程路線', en: 'Trip Route' },
+                'outbound': { zh: '去程', en: 'Outbound' }, 'return': { zh: '回程', en: 'Return' }, 'gate': { zh: '閘口', en: 'GATE' }, 'terminal': { zh: ' ', en: ' ' },
+                'estDep': { zh: '預計起飛', en: 'Est. Dep' }, 'estArr': { zh: '預計抵達', en: 'Est. Arr' }, 'economy': { zh: '經濟艙', en: 'Economy' },
+                'rate': { zh: '即時匯率', en: 'Live Rate' }, 'feeIncluded': { zh: '含3%手續費', en: '3% Fee Incl.' },
+                'itinerary': { zh: '行程', en: 'Itinerary' }, 'viewAll': { zh: '查看全部', en: 'View All' },
+                'prepList': { zh: '準備清單', en: 'Preparation' }, 'shopping': { zh: '購物清單', en: 'Shopping' },
+                'totalExpense': { zh: '總支出', en: 'Total Expense' }, 'creditCard': { zh: '信用卡', en: 'Credit Card' }, 'cash': { zh: '現金', en: 'Cash' },
+                'info': { zh: '資訊', en: 'Info' }, 'noInfo': { zh: '暫無資訊', en: 'No info yet' }, 'noItems': { zh: '無項目', en: 'No items' },
+                'feelsLike': { zh: '體感', en: 'Feels' }, 'humidity': { zh: '濕度', en: 'Hum' }, 'rain': { zh: '降雨', en: 'Rain' },
+                'Scheduled': { zh: '預定', en: 'Scheduled' }, 'On Time': { zh: '準時', en: 'On Time' }, 'Delayed': { zh: '延誤', en: 'Delayed' },
+                'Boarding': { zh: '登機中', en: 'Boarding' }, 'Landed': { zh: '已抵達', en: 'Landed' },
+                'editFlight': { zh: '編輯航班', en: 'Edit Flight' }, 'flightCode': { zh: '航班編號 (e.g. CX400)', en: 'Flight Code' },
+                'airline': { zh: '航空公司', en: 'Airline Name' }, 'depTerm': { zh: '出發客運大樓', en: 'Dep Term' },
+                'arrTerm': { zh: '抵達客運大樓', en: 'Arr Term' }, 'trackingUrl': { zh: '追蹤連結', en: 'Tracking URL' },
+                'liveStatus': { zh: '航班實況', en: 'Live Status' },
+                'filter_all': { zh: '全部', en: 'All' }, 'filter_credit': { zh: '信用卡', en: 'Card' }, 'filter_cash': { zh: '現金', en: 'Cash' }, 'filter_settlement': { zh: '結算', en: 'Settle' },
+                'shouldPay': { zh: '需支付', en: 'Should Pay' }, 'shouldReceive': { zh: '需收取', en: 'Should Receive' }, 'noSettlement': { zh: '無需結算', en: 'All settled' },
+                'payer': { zh: '付款人', en: 'Payer' }, 'all': { zh: '全員', en: 'All' }, 'desc': { zh: '描述', en: 'Description' },
+                '門票': { zh: '門票', en: 'Tickets' }, '交通': { zh: '交通', en: 'Transport' }, '購物': { zh: '購物', en: 'Shopping' }, '餐飲': { zh: '餐飲', en: 'Food' },
+                '娛樂': { zh: '娛樂', en: 'Fun' }, '住宿': { zh: '住宿', en: 'Hotel' }, '服務': { zh: '服務', en: 'Service' }, '其他': { zh: '其他', en: 'Others' },
+                'shoppingItem': { zh: '購物項目', en: 'Shopping Item' }, 'itemName': { zh: '物品名稱', en: 'Item Name' },
+                'imgRef': { zh: '參考圖片', en: 'Image Reference' }, 'uploadImg': { zh: '上傳圖片', en: 'Upload Image' },
+                'imgSelected': { zh: '已選取圖片', en: 'Image Selected' }, 'changeImg': { zh: '更換圖片', en: 'Change Image' },
+                'pasteUrl': { zh: '或貼上圖片網址', en: 'Or paste URL here' }, 'taskName': { zh: '任務名稱', en: 'Task Name' },
+                'editInfo': { zh: '編輯資訊', en: 'Edit Info' }, 'manageMembers': { zh: '管理成員', en: 'Manage Members' }, 'newName': { zh: '新成員', en: 'New Member' },
+                'editEvent': { zh: '編輯行程', en: 'Edit Event' }, 'mapAddr': { zh: 'Google Map 地址', en: 'Google Map Address' },
+                '首頁': { zh: '首頁', en: 'Home' }, '行程': { zh: '行程', en: 'Itinerary' }, '記帳': { zh: '記帳', en: 'Expenses' }, '設定': { zh: '設定', en: 'Settings' },
+                'settings': { zh: '設定', en: 'Settings' }, 'routeHeader': { zh: '路線標題', en: 'Route Header' },
+                'startDate': { zh: '開始日期', en: 'Start Date' }, 'endDate': { zh: '結束日期', en: 'End Date' },
+                'localCurr': { zh: '當地貨幣', en: 'Local Currency' }, 'homeCurr': { zh: '本國貨幣', en: 'Home Currency' },
+                'weatherLoc': { zh: '天氣地點', en: 'Weather Location' }, 'openMaps': { zh: '打開地圖', en: 'Open Maps' }, 'navigate': { zh: '導航', en: 'Navigate' },
+                'mapApp': { zh: '地圖 App', en: 'Map App' }, 'map_name_Google': { zh: 'Google', en: 'Google' }, 'map_name_Apple': { zh: 'Apple', en: 'Apple' },
+                                'map_name_NAVER': { zh: 'NAVER', en: 'NAVER' }, 'map_name_Amap': { zh: '高德', en: 'A-map' },
+                'showNavPill': { zh: '導航動態島', en: 'Nav Pill' }, 'setDest': { zh: '設定目的地', en: 'Set Destination' },
+                'setDestDesc': { zh: '輸入地址後，點擊膠囊即可導航', en: 'Enter address for quick navigation' }
+            };
+            return dict[k]?.[lang.value] || k;
+        };
+
+        const toggleLang = () => { lang.value = lang.value === 'zh' ? 'en' : 'zh'; localStorage.setItem('app_lang', lang.value); };
+        const toggleRateOrder = () => { rateDisplayMode.value = rateDisplayMode.value === 0 ? 1 : 0; localStorage.setItem('rate_mode', rateDisplayMode.value); };
+        const isSocialLink = (url) => url && (url.includes('instagram.com') || url.includes('ig.me') || url.includes('threads') || url.includes('threads.net'));
+        const getSocialIcon = (url) => url && url.includes('threads') ? 'ph-threads-logo' : 'ph-instagram-logo';
+        const getCategoryIcon = (c) => { const f = expenseCats.find(x=>x.name===c); return f ? f.icon : 'ph-star'; };
+
+        // --- 6. Computed Logic ---
+        const syncStatusText = computed(() => {
+  const zh = {
+    synced: '已同步',
+    saving: '儲存中...',
+    loading: '載入中...',
+    error: '錯誤'
+  };
+
+  const en = {
+    synced: 'Synced',
+    saving: 'Saving...',
+    loading: 'Loading...',
+    error: 'Error'
+  };
+
+  const map = lang.value === 'zh' ? zh : en;
+  return map[syncState.value] || '';
+});
+        
+        const dayList = computed(() => {
+            if(!settings.startDate || !settings.endDate) return [];
+            const start = new Date(settings.startDate);
+            const end = new Date(settings.endDate);
+            const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1; 
+            const list = [];
+            for(let i=0; i<diffDays; i++){
+                const d = new Date(start); d.setDate(d.getDate() + i);
+                list.push({ 
+                    dateStr: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric' }), 
+                    weekday: d.toLocaleDateString('en-US', {weekday:'short'}), 
+                    fullDate: d 
+                });
+            }
+            return list;
+        });
+
+        const headerDateRange = computed(() => {
+            if(!settings.startDate || !settings.endDate) return '';
+            const s = new Date(settings.startDate), e = new Date(settings.endDate);
+            const sy = s.getFullYear(), ey = e.getFullYear();
+            const fs = `${s.getDate()}/${s.getMonth()+1}`, fe = `${e.getDate()}/${e.getMonth()+1}`;
+            return (sy === ey) ? `${fs} ~ ${fe}/${sy}` : `${fs}/${sy} ~ ${fe}/${ey}`;
+        });
+
+        const selectedDay = ref(0);
+        const sortedItinerary = computed(() => {
+            if (selectedDay.value === 'prep') return [];
+            const list = itinerary[selectedDay.value] || [];
+            return list.sort((a, b) => (a.time || '23:59').localeCompare(b.time || '23:59'));
+        });
+
+        const isPreTrip = computed(() => {
+            if(!settings.startDate) return false;
+            return new Date() < new Date(settings.startDate);
+        });
+
+        const currentTripDayIndex = computed(() => {
+            if(!settings.startDate) return -1;
+            const diffDays = Math.floor((new Date() - new Date(settings.startDate)) / (1000 * 60 * 60 * 24));
+            return (diffDays >= 0 && diffDays < itinerary.length) ? diffDays : -1;
+        });
+
+                const displayedRate = computed(() => {
+             const r = effectiveRate.value;
+             return (rateDisplayMode.value === 1) ? (1 / r).toFixed(5) : r.toFixed(5);
+        });
+        const quickEstAmount = ref('');
+        const quickEstInput = ref(null);
+        let quickEstWasFocused = false;
+        const captureQuickEstFocus = () => {
+            const el = quickEstInput.value;
+            quickEstWasFocused = !!el && document.activeElement === el;
+        };
+        const clearQuickEstOnRateCardBg = () => {
+            quickEstAmount.value = '';
+            if (quickEstWasFocused) {
+                nextTick(() => {
+                    const el = quickEstInput.value;
+                    if (el) el.focus();
+                });
+            }
+            quickEstWasFocused = false;
+        };
+        const unformatQuickEst = () => { quickEstAmount.value = quickEstAmount.value.replace(/,/g, ''); };
+        const formatQuickEst = () => { 
+             if(!quickEstAmount.value) return;
+             const n = parseFloat(quickEstAmount.value.replace(/,/g, ''));
+             if(!isNaN(n)) quickEstAmount.value = n.toLocaleString('en-US', {maximumFractionDigits: 10}); 
+        };
+        const quickEstResult = computed(() => {
+    const amt = parseFloat(quickEstAmount.value.replace(/,/g, ''));
+    if (isNaN(amt)) return '0';
+
+    const r = parseFloat(displayedRate.value);
+    if (!r) return '0';
+
+    // rateDisplayMode:
+    // 0 = Home → Local (1 Home = r Local)
+    // 1 = Local → Home (1 Local = r Home)
+    // rateDisplayMode controls the semantic direction of displayedRate,
+    // NOT just UI presentation.
+    return formatNumber(
+        rateDisplayMode.value === 0
+            ? (amt / r)   // Local → Home
+            : (amt * r)
+    );
+});
+
+        const totalExpense = computed(() => {
+            let totalHome = 0;
+            expenses.value.forEach(e => { totalHome += calculateHomeAmount(e); });
+            return { hkd: totalHome, twd: totalHome * currentLiveRate.value };
+        });
+
+        const expensesBreakdown = computed(() => {
+            let cardHkd = 0, cashHkd = 0;
+            expenses.value.forEach(e => {
+                const homeAmt = calculateHomeAmount(e);
+                if(e.paymentMethod === 'credit_card') cardHkd += homeAmt; else cashHkd += homeAmt;
+            });
+            return {
+                card: { hkd: cardHkd, twd: cardHkd * currentLiveRate.value },
+                cash: { hkd: cashHkd, twd: cashHkd * currentLiveRate.value }
+            };
+        });
+
+        const expenseFilter = ref('all');
+        const filteredExpenses = computed(() => {
+            let list = [...expenses.value].sort((a,b) => new Date(b.date) - new Date(a.date));
+            if(expenseFilter.value === 'credit') return list.filter(e => e.paymentMethod === 'credit_card');
+            if(expenseFilter.value === 'cash') return list.filter(e => e.paymentMethod === 'cash');
+            return list;
+        });
+
+        const settlementList = computed(() => {
+            const bal = {};
+            members.value.forEach(m => bal[m] = 0);
+            expenses.value.forEach(e => {
+                const homeAmt = calculateHomeAmount(e);
+                const payer = e.payer || members.value[0];
+                const involved = (e.involved && e.involved.length > 0) ? e.involved : members.value;
+                
+                if(bal[payer] === undefined) bal[payer] = 0;
+                bal[payer] += homeAmt;
+                const split = homeAmt / involved.length;
+                involved.forEach(m => {
+                    if(bal[m] === undefined) bal[m] = 0;
+                    bal[m] -= split;
+                });
+            });
+            return Object.keys(bal).map(k => ({name: k, amount: bal[k]})).filter(x => Math.abs(x.amount) > 1);
+        });
+        
+        const weatherIconClass = computed(() => {
+            const c = weather.code;
+            if (c >= 95) return 'ph ph-cloud-lightning-rain';
+            if (c >= 80 || c >= 60) return 'ph ph-cloud-rain';
+            if (c >= 50) return 'ph ph-cloud-drizzle';
+            if (c >= 45) return 'ph ph-cloud-fog';
+            if (c > 2) return 'ph ph-cloud';
+            if (c >= 1) return 'ph ph-cloud-sun';
+            return 'ph ph-sun';
+        });
+
+        const getDayHeader = (idx) => {
+             const d = dayList.value[idx];
+             return d ? `${d.dateStr} ${d.weekday}` : `Day ${idx+1}`;
+        };
+
+        // --- 7. Feature: Map Logic ---
+        const selectedMapLocation = ref(null);
+        const mapApp = ref(localStorage.getItem('mapApp') || 'Google');
+        const tempMapApp = ref(null);
+        const addressPlaceholder = computed(() => lang.value === 'zh' ? '香港九龍旺角亞皆老街8號' : '8 Argyle St, Mong Kok, Kowloon, Hong Kong');
+
+        function showLocationOnMap(item) {
+             selectedMapLocation.value = (item.address && item.address.trim() !== '') ? { title: item.title, address: item.address, id: item.id } : null;
+        }
+
+        function selectMapApp(app) {
+            mapApp.value = app;
+            localStorage.setItem('mapApp', app);
+        }
+
+                function openMap(addr) {
+            if(!addr) return;
+            const app = tempMapApp.value || mapApp.value;
+            const q = encodeURIComponent(addr);
+            let url = '';
+            
+            if(app === 'Google') url = 'https://www.google.com/maps/search/?api=1&query=' + q;
+            else if(app === 'Apple') url = 'maps://?q=' + q;
+            else if(app === 'NAVER') url = 'nmap://search?query=' + q;
+            else if(app === 'Amap') url = 'androidamap://keywordNavi?keyword=' + q;
+            
+            if(url) window.open(url, '_blank');
+        }
+
+                function openExternalLink(url) { if (url) window.open(url, '_blank');
+}
+
+        // --- Dynamic Navigation Pill Logic ---
+        const navPillModalOpen = ref(false);
+        const newNavAddress = ref('');
+        const pillDisplayMode = ref('weather'); // 'weather' | 'nav'
+        let pillLoopTimer = null;
+        let pillPressTimer = null;
+
+        const navPillLabel = computed(() => {
+            if (!settings.navAddress) return `${weather.temp}°`;
+            if (pillDisplayMode.value === 'weather') return `${weather.temp}°`;
+            return lang.value === 'zh' ? '導航' : 'Nav';
+        });
+
+                const navPillIcon = computed(() => {
+            if (pillDisplayMode.value === 'weather' || !settings.navAddress) return weatherIconClass.value;
+            return 'ph-fill ph-navigation-arrow';
+        });
+
+        function handlePillDown() {
+            pillPressTimer = setTimeout(() => {
+                pillPressTimer = null;
+                openNavModal();
+            }, 500);
+        }
+
+        function handlePillLeave() {
+            if (pillPressTimer) { clearTimeout(pillPressTimer); pillPressTimer = null; }
+        }
+
+        function handlePillUp() {
+            if (pillPressTimer) {
+                clearTimeout(pillPressTimer);
+                pillPressTimer = null;
+                // Short click action
+                if (settings.navAddress) openMap(settings.navAddress);
+                else openNavModal();
+            }
+        }
+
+        function openNavModal() {
+            newNavAddress.value = settings.navAddress || '';
+            navPillModalOpen.value = true;
+        }
+
+        function saveNavAddress() {
+            settings.navAddress = newNavAddress.value;
+            navPillModalOpen.value = false;
+            saveAll();
+        }
+
+        function startPillLoop() {
+            stopPillLoop();
+            if (!settings.navAddress) {
+                pillDisplayMode.value = 'weather';
+                return;
+            }
+            const cycle = () => {
+                pillDisplayMode.value = 'weather';
+                pillLoopTimer = setTimeout(() => {
+                    pillDisplayMode.value = 'nav';
+                    pillLoopTimer = setTimeout(cycle, 6000);
+                }, 4000);
+            };
+            cycle();
+        }
+
+        function stopPillLoop() { if(pillLoopTimer) clearTimeout(pillLoopTimer); }
+
+        watch(() => settings.navAddress, startPillLoop);
+
+        // --- 8. Feature: Upload & Image Viewer ---
+        const tempImages = ref([]);
+        const uploadQueue = ref([]); // { file: File, blob: String }
+        const imageViewer = reactive({ open: false, list: [], index: 0, touch: { startX: 0, startY: 0, diffX: 0, diffY: 0, dragging: false } });
+
+        function handleMultiFileUpload(e) {
+            const files = Array.from(e.target.files);
+            const remainingSlots = 5 - tempImages.value.length;
+            files.slice(0, remainingSlots).forEach(file => {
+                const blobUrl = URL.createObjectURL(file);
+                tempImages.value.push(blobUrl);
+                uploadQueue.value.push({ file: file, blob: blobUrl });
+            });
+            e.target.value = '';
+        }
+
+        function removeTempImage(idx) {
+            const imgUrl = tempImages.value[idx];
+            tempImages.value.splice(idx, 1);
+            const qIdx = uploadQueue.value.findIndex(x => x.blob === imgUrl);
+            if (qIdx !== -1) uploadQueue.value.splice(qIdx, 1);
+        }
+        
+        async function uploadFileToSupabase(file) {
+            if (!file) return null;
+            const fileName = `${Date.now()}_${Math.floor(Math.random()*1000)}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+            try {
+                const { error } = await supabaseClient.storage.from('uploads').upload(fileName, file);
+                if (error) throw error;
+                const { data } = supabaseClient.storage.from('uploads').getPublicUrl(fileName);
+                return data.publicUrl;
+            } catch (e) {
+                console.error(e);
+                alert('Upload failed');
+                return null;
+            }
+        }
+
+        async function processUploadQueue() {
+            const finalImages = [...tempImages.value];
+            for (const item of uploadQueue.value) {
+                const url = await uploadFileToSupabase(item.file);
+                if (url) {
+                    const idx = finalImages.indexOf(item.blob);
+                    if (idx !== -1) finalImages[idx] = url;
+                }
+            }
+            return finalImages;
+        }
+
+        // Image Viewer Logic
+        function openImageViewer(sources, startIndex = 0) {
+            if (!sources) return;
+            const list = Array.isArray(sources) ? sources : [sources];
+            if (list.length === 0) return;
+            imageViewer.list = list;
+            imageViewer.index = startIndex;
+            imageViewer.touch = { startX: 0, startY: 0, diffX: 0, diffY: 0, dragging: false };
+            imageViewer.open = true;
+        }
+
+        function closeImageViewer() {
+            imageViewer.open = false;
+            setTimeout(() => {
+                 imageViewer.list = [];
+                 imageViewer.touch = { startX: 0, startY: 0, diffX: 0, diffY: 0, dragging: false };
+            }, 300);
+        }
+
+        function handleViewerTouchStart(e) {
+            imageViewer.touch.startX = e.touches[0].clientX;
+            imageViewer.touch.startY = e.touches[0].clientY;
+            imageViewer.touch.dragging = true;
+        }
+
+        function handleViewerTouchMove(e) {
+            if (!imageViewer.touch.dragging) return;
+            const diffX = e.touches[0].clientX - imageViewer.touch.startX;
+            const diffY = e.touches[0].clientY - imageViewer.touch.startY;
+            
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                // Horizontal Swipe (Nav) with resistance
+                imageViewer.touch.diffX = ((imageViewer.index === 0 && diffX > 0) || (imageViewer.index === imageViewer.list.length - 1 && diffX < 0)) ? diffX * 0.3 : diffX;
+                imageViewer.touch.diffY = 0;
+            } else {
+                // Vertical Swipe (Close)
+                imageViewer.touch.diffY = diffY;
+                imageViewer.touch.diffX = 0;
+            }
+        }
+
+        function handleViewerTouchEnd() {
+            imageViewer.touch.dragging = false;
+            const { diffX, diffY } = imageViewer.touch;
+            if (Math.abs(diffY) > 100) {
+                closeImageViewer();
+            } else if (Math.abs(diffX) > 80) {
+                if (diffX > 0 && imageViewer.index > 0) imageViewer.index--;
+                else if (diffX < 0 && imageViewer.index < imageViewer.list.length - 1) imageViewer.index++;
+            }
+            imageViewer.touch.diffX = 0;
+            imageViewer.touch.diffY = 0;
+        }
+
+        // --- 9. Feature: Chart Logic (Canvas) ---
+        const settlementCanvas = ref(null);
+        const activeCategory = ref(null);
+        const catColors = {
+            '餐飲': '#FF9500', '交通': '#007AFF', '購物': '#FF2D55',
+            '住宿': '#5AC8FA', '娛樂': '#FFCC00', '門票': '#AF52DE',
+            '服務': '#8E8E93', '其他': '#E5E5EA'
+        };
+        let chartSegments = [];
+
+        function drawSettlementChart() {
+            const cvs = settlementCanvas.value;
+            if (!cvs) return;
+            const ctx = cvs.getContext('2d');
+            const w = cvs.width, h = cvs.height;
+            ctx.clearRect(0, 0, w, h);
+            chartSegments = [];
+
+            // 1. Data Aggregation
+            const dataMap = {};
+            let total = 0;
+            expenses.value.forEach(e => {
+                const homeAmt = calculateHomeAmount(e);
+                if (!dataMap[e.category]) dataMap[e.category] = 0;
+                dataMap[e.category] += homeAmt;
+                total += homeAmt;
+            });
+
+            // 2. Sort Data
+            const sortedCats = Object.entries(dataMap).sort((a, b) => b[1] - a[1]);
+
+            // 3. Draw Doughnut
+            const centerX = w / 2, centerY = h / 2, radius = (w / 2) - 25, lineWidth = 30;
+            let currentSweep = 0;
+            const baseAngle = -0.5 * Math.PI;
+
+            if (total === 0) {
+                ctx.beginPath();
+                ctx.lineWidth = 25; ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.font = 'bold 24px -apple-system, sans-serif';
+                ctx.fillText('No Data', centerX, centerY);
+                return;
+            }
+
+            sortedCats.forEach(([cat, amt]) => {
+                const sliceAngle = (amt / total) * 2 * Math.PI;
+                const startAngle = baseAngle + currentSweep;
+                const endAngle = startAngle + sliceAngle;
+                const color = catColors[cat] || '#8E8E93';
+
+                ctx.beginPath();
+                ctx.lineWidth = lineWidth; ctx.strokeStyle = color; ctx.lineCap = 'butt';
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.stroke();
+                
+                chartSegments.push({ category: cat, start: currentSweep, end: currentSweep + sliceAngle });
+                currentSweep += sliceAngle;
+            });
+
+            // 4. Center Text
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            const isZh = lang.value === 'zh';
+            const topLabel = isZh ? '總支出' : 'Total';
+            const bottomLabel = isZh ? 'HKD' : '(HKD)';
+            const amountStr = formatNumber(total);
+            const innerDiameter = (radius - lineWidth/2) * 2;
+            const maxTextWidth = innerDiameter * 0.85;
+
+            const getFitFontSize = (text, startSize, minSize, fontWeight) => {
+                ctx.font = `${fontWeight} ${startSize}px -apple-system, sans-serif`;
+                let width = ctx.measureText(text).width;
+                let size = startSize;
+                while (width > maxTextWidth && size > minSize) {
+                    size -= 2;
+                    ctx.font = `${fontWeight} ${size}px -apple-system, sans-serif`;
+                    width = ctx.measureText(text).width;
+                }
+                return size;
+            };
+
+            const amountFontSize = getFitFontSize(amountStr, 64, 36, 300);
+            const labelFontSize = getFitFontSize(topLabel, 26, 20, 700);
+
+            ctx.font = `700 ${labelFontSize}px -apple-system, sans-serif`; ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            ctx.fillText(topLabel, centerX, centerY - (amountFontSize * 0.65));
+            ctx.font = `300 ${amountFontSize}px -apple-system, sans-serif`; ctx.fillStyle = 'white';
+            ctx.fillText(amountStr, centerX, centerY + (amountFontSize * 0.05));
+            ctx.font = `700 ${labelFontSize}px -apple-system, sans-serif`; ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.fillText(bottomLabel, centerX, centerY + (amountFontSize * 0.75));
+        }
+        
+        function handleChartClick(e) {
+            if (!chartSegments.length || !settlementCanvas.value) return;
+            const rect = e.target.getBoundingClientRect();
+            const scaleX = e.target.width / rect.width, scaleY = e.target.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX, y = (e.clientY - rect.top) * scaleY;
+            const cx = e.target.width / 2, cy = e.target.height / 2;
+            const dist = Math.sqrt((x - cx)**2 + (y - cy)**2);
+
+            // Ring hit detection (Generous: 140-210)
+            if (dist < 140 || dist > 210) { activeCategory.value = null; return; }
+            
+            let angle = Math.atan2(y - cy, x - cx);
+            let clickAngle = angle - (-0.5 * Math.PI);
+            if (clickAngle < 0) clickAngle += 2 * Math.PI;
+
+            const found = chartSegments.find(s => clickAngle >= s.start && clickAngle < s.end);
+            activeCategory.value = (found && activeCategory.value !== found.category) ? found.category : null;
+        }
+
+        // --- 10. Feature: Mobile Swipe Logic ---
+        const swipeContainer = ref(null);
+        const swipeContentVisual = ref(null);
+        const bounceClass = ref('');
+        const visualOffset = ref(0);
+        const isSwipeAnimating = ref(false);
+        const touchStart = { x: 0, y: 0 };
+        let startTime = 0;
+        let isSwipeValid = false;
+
+        const visualSwipeStyle = computed(() => ({
+            transform: `translateX(${visualOffset.value}px)`,
+            transition: isSwipeAnimating.value ? 'transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)' : 'none'
+        }));
+
+        const isAnyModalOpen = computed(() => 
+            flightModalOpen.value || preNoteModalOpen.value || shoppingModalOpen.value || 
+            expenseModalOpen.value || itineraryModalOpen.value || memberModalOpen.value || 
+            infoModalOpen.value || imageViewer.open || selectedMapLocation.value
+        );
+
+        const handleTouchStart = (e) => {
+            // [Bug Fix] Check if touch target is within the itinerary body container
+            if (!swipeContentVisual.value || !swipeContentVisual.value.contains(e.target)) {
+                isSwipeValid = false;
+                return;
+            }
+            isSwipeValid = true;
+            isSwipeAnimating.value = false;
+            touchStart.x = e.changedTouches[0].clientX;
+            touchStart.y = e.changedTouches[0].clientY;
+            startTime = Date.now();
+        };
+
+        const handleTouchMove = (e) => {
+            if (!isSwipeValid) return;
+            const diffX = e.changedTouches[0].clientX - touchStart.x;
+            const diffY = e.changedTouches[0].clientY - touchStart.y;
+            // Horizontal dominant check
+            if (Math.abs(diffX) > Math.abs(diffY)) visualOffset.value = diffX;
+        };
+
+        const handleTouchEnd = (e) => {
+            if (!isSwipeValid) return;
+            const diffX = e.changedTouches[0].clientX - touchStart.x;
+            const diffY = e.changedTouches[0].clientY - touchStart.y;
+            isSwipeAnimating.value = true;
+
+            if ((Math.abs(diffX) > 50 || Math.abs(diffX / (Date.now() - startTime)) > 0.5) && Math.abs(diffX) > Math.abs(diffY)) {
+                const screenW = window.innerWidth;
+                const performSwitch = (newDayVal, exitDir) => {
+                    visualOffset.value = exitDir * screenW; // Slide Out
+                    setTimeout(() => {
+                        selectedDay.value = newDayVal;
+                        isSwipeAnimating.value = false;
+                        visualOffset.value = -exitDir * screenW; // Teleport
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                isSwipeAnimating.value = true;
+                                visualOffset.value = 0; // Slide In
+                            });
+                        });
+                    }, 250);
+                };
+
+                if (diffX < 0) { // Swipe Left -> Next
+                    if (selectedDay.value === 'prep') performSwitch(0, -1);
+                    else if (selectedDay.value < dayList.value.length - 1) performSwitch(selectedDay.value + 1, -1);
+                    else { visualOffset.value = 0; triggerBounce('bounce-left'); }
+                } else { // Swipe Right -> Prev
+                    if (selectedDay.value === 0) performSwitch('prep', 1);
+                    else if (selectedDay.value === 'prep') { visualOffset.value = 0; triggerBounce('bounce-right'); }
+                    else performSwitch(selectedDay.value - 1, 1);
+                }
+            } else {
+                visualOffset.value = 0; // Rebound
+            }
+        };
+
+        const triggerBounce = (cls) => {
+            bounceClass.value = cls;
+            setTimeout(() => bounceClass.value = '', 300);
+        };
+
+        const addSwipeListener = () => {
+            if (swipeContainer.value) {
+                swipeContainer.value.addEventListener('touchstart', handleTouchStart, { passive: true });
+                swipeContainer.value.addEventListener('touchmove', handleTouchMove, { passive: false });
+                swipeContainer.value.addEventListener('touchend', handleTouchEnd, { passive: true });
+            }
+        };
+        const removeSwipeListener = () => {
+            if (swipeContainer.value) {
+                swipeContainer.value.removeEventListener('touchstart', handleTouchStart);
+                swipeContainer.value.removeEventListener('touchmove', handleTouchMove);
+                swipeContainer.value.removeEventListener('touchend', handleTouchEnd);
+            }
+        };
+
+        // --- 11. Core Logic: Data & Actions ---
+        
+        // Flight Logic
+        function autoToggleFlightCard() {
+            if (currentTripDayIndex.value === -1) {
+                isFlightMinimized.value = true;
+            } else {
+                const isOutbound = currentTripDayIndex.value === 0;
+                const isReturn = currentTripDayIndex.value === itinerary.length - 1;
+                if (isOutbound || isReturn) {
+                    isFlightMinimized.value = false;
+                    currentFlightView.value = isReturn ? 'return' : 'outbound';
+                } else {
+                    isFlightMinimized.value = true;
+                }
+            }
+        }
+        function openFlightModal() { Object.assign(newFlight, flights[currentFlightView.value]); flightModalOpen.value = true; }
+        function syncModalToView() { Object.assign(newFlight, flights[currentFlightView.value]); }
+        function saveFlight() { Object.assign(flights[currentFlightView.value], newFlight); flightModalOpen.value = false; saveAll(); }
+
+        // PreNote Logic
+        const newPreNoteInput = ref('');
+        function openPreNoteModal(item) {
+            const base = item || {id:null, name:'', isDone:false, imageURL:'', images:[], linkURL:''};
+            Object.assign(editingPreNote, base);
+            tempImages.value = (base.images && Array.isArray(base.images)) ? [...base.images] : (base.imageURL ? [base.imageURL] : []);
+            uploadQueue.value = [];
+            preNoteModalOpen.value = true; 
+        }
+        async function savePreNoteEdit() {
+            if(!editingPreNote.name) return;
+            const finalImages = await processUploadQueue();
+                        const itemToSave = { 
+                ...editingPreNote, 
+                images: finalImages,
+                imageURL: finalImages.length > 0 ? finalImages[0] : '', 
+                linkURL: editingPreNote.linkURL || '' 
+            };
+
+            // Fix: Detect and delete removed images from storage
+            if (itemToSave.id) {
+                const oldItem = preTripNotes.value.find(x => x.id === itemToSave.id);
+                if (oldItem) {
+                    const oldImgs = oldItem.images || (oldItem.imageURL ? [oldItem.imageURL] : []);
+                    const deleted = oldImgs.filter(url => url && !finalImages.includes(url) && url.includes('/uploads/'));
+                    if (deleted.length > 0) supabaseClient.storage.from('uploads').remove(deleted.map(u => u.split('/uploads/')[1]));
+                }
+            }
+
+            if(!itemToSave.id) preTripNotes.value.push({ ...itemToSave, id: generateId() });
+            else { 
+                const idx = preTripNotes.value.findIndex(x=>x.id===itemToSave.id);
+                if(idx!==-1) preTripNotes.value[idx] = {...itemToSave};
+            }
+            preNoteModalOpen.value = false; 
+            saveAll();
+        }
+        async function removePreNote(id) { 
+            if(!confirm('Delete this task?')) return;
+            const item = preTripNotes.value.find(x => x.id === id);
+            const imgs = item.images || (item.imageURL ? [item.imageURL] : []);
+            for (const url of imgs) {
+                if (url && url.includes('/uploads/')) {
+                    try { await supabaseClient.storage.from('uploads').remove([url.split('/uploads/')[1]]); } catch (e) {}
+                }
+            }
+            preTripNotes.value = preTripNotes.value.filter(x=>x.id!==id);
+            preNoteModalOpen.value = false;
+            saveAll();
+        }
+        function togglePreNoteDone(id) { const n = preTripNotes.value.find(x=>x.id===id); if(n) n.isDone = !n.isDone; saveAll(); }
+        function jumpToPreNote(id) {
+             selectedDay.value = 'prep'; currentTab.value = '行程';
+             nextTick(() => {
+                 const el = document.querySelector(`li[data-id="${id}"]`) || document.querySelector(`div[data-id="${id}"]`);
+                 if(el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('ring-2', 'ring-green-500'); setTimeout(() => el.classList.remove('ring-2', 'ring-green-500'), 1500); }
+             });
+        }
+        function goToPrepInput() {
+            selectedDay.value = 'prep'; currentTab.value = '行程';
+            nextTick(() => { const el = document.getElementById('prepInputBox'); if(el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.focus(); } });
+        }
+
+        // Shopping Logic
+        function openShoppingModal(item) {
+            const base = item || {id:null, name:'', imageURL:'', images:[], linkURL:'', isDone:false};
+            Object.assign(newShoppingItem, base);
+            tempImages.value = (base.images && Array.isArray(base.images)) ? [...base.images] : (base.imageURL ? [base.imageURL] : []);
+            uploadQueue.value = [];
+            shoppingModalOpen.value = true; 
+        }
+        async function saveShoppingItem() {
+            if(!newShoppingItem.name) return;
+            const finalImages = await processUploadQueue();
+                        const itemToSave = { ...newShoppingItem, images: finalImages, imageURL: finalImages.length > 0 ? finalImages[0] : '', linkURL: newShoppingItem.linkURL || '' };
+            
+            // Fix: Detect and delete removed images from storage
+            if (itemToSave.id) {
+                const oldItem = shoppingList.value.find(x => x.id === itemToSave.id);
+                if (oldItem) {
+                    const oldImgs = oldItem.images || (oldItem.imageURL ? [oldItem.imageURL] : []);
+                    const deleted = oldImgs.filter(url => url && !finalImages.includes(url) && url.includes('/uploads/'));
+                    if (deleted.length > 0) supabaseClient.storage.from('uploads').remove(deleted.map(u => u.split('/uploads/')[1]));
+                }
+            }
+
+            if(!itemToSave.id) shoppingList.value.push({ ...itemToSave, id: generateId() });
+            else { 
+                const idx = shoppingList.value.findIndex(x=>x.id===itemToSave.id);
+                if(idx!==-1) shoppingList.value[idx] = {...itemToSave};
+            }
+            shoppingModalOpen.value = false; 
+            saveAll();
+        }
+        async function removeShoppingItem(id) { 
+            if(!confirm('Delete this item?')) return;
+            const item = shoppingList.value.find(x => x.id === id);
+            const imgs = item.images || (item.imageURL ? [item.imageURL] : []);
+            for (const url of imgs) {
+                if (url && url.includes('/uploads/')) {
+                    try { await supabaseClient.storage.from('uploads').remove([url.split('/uploads/')[1]]); } catch (e) {}
+                }
+            }
+                        shoppingList.value = shoppingList.value.filter(x=>x.id!==id);
+            shoppingModalOpen.value = false; 
+            saveAll();
+        }
+        function jumpToShoppingItem(id) {
+            currentTab.value = '購物';
+            nextTick(() => {
+                const el = document.querySelector(`div[data-id="${id}"]`) || document.querySelector(`li[data-id="${id}"]`);
+                if(el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('ring-2', 'ring-pink-400'); setTimeout(() => el.classList.remove('ring-2', 'ring-pink-400'), 1500); }
+            });
+        }
+
+        // Expense Logic
+        function openExpenseModal(item) { 
+            Object.assign(newExpense, item || { id:null, amount:'', currency: settings.localCurrency, category:'餐飲', paymentMethod:'cash', payer: members.value[0], involved: [...members.value], date: new Date().toISOString().split('T')[0], name: '' });
+            expenseModalOpen.value = true; 
+        }
+        function toggleParticipant(m) { const i = newExpense.involved.indexOf(m); if(i > -1) newExpense.involved.splice(i,1); else newExpense.involved.push(m); }
+        function toggleAllParticipants() { if(newExpense.involved.length === members.value.length) newExpense.involved = []; else newExpense.involved = [...members.value]; }
+        function handleCalcInput(k) { 
+            let val = String(newExpense.amount);
+            if(k === 'C') val = ''; else if(k === 'DEL') val = val.slice(0, -1);
+            else if(k === '=') { try { val = eval(val); } catch{} } else val += k; 
+            newExpense.amount = val;
+        }
+        function saveExpense() { 
+            try { newExpense.amount = eval(String(newExpense.amount)); } catch{}
+            if(!newExpense.name) newExpense.name = newExpense.category;
+            // Snapshot exchange rate for new/edited items if not already present
+            if (newExpense.currency === settings.localCurrency && !newExpense.exchange_rate_at_save) {
+                newExpense.exchange_rate_at_save = effectiveRate.value;
+            }
+            const item = { ...newExpense, id: newExpense.id || generateId(), created_at: Date.now() }; 
+            const idx = expenses.value.findIndex(e => e.id === item.id);
+            if(idx !== -1) expenses.value[idx] = item; else expenses.value.push(item);
+            expenseModalOpen.value = false; saveAll();
+        }
+                function removeExpense(id) { if(!confirm('Delete expense?')) return;
+            expenses.value = expenses.value.filter(x=>x.id!==id); expenseModalOpen.value = false; saveAll(); }
+        function goToExpenseList() {
+             currentTab.value = '記帳';
+             nextTick(() => { const el = document.getElementById('expense-filters'); if(el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+        }
+
+        // Itinerary Logic
+        const quickItinerary = reactive({ time: '', title: '' });
+        function openItineraryModal(item) { 
+            // Ensure colorClass is empty for new items to trigger randomizer on save
+            Object.assign(newItineraryItem, item || {id:null, dayIndex: selectedDay.value, time:'', title:'', note:'', address:'', colorClass: ''});
+            itineraryModalOpen.value = true; 
+        }
+        function saveItineraryItem() { 
+            if (!newItineraryItem.colorClass) {
+                const colorPool = ['border-purple-500', 'border-[#007AFF]', 'border-pink-500', 'border-orange-500', 'border-yellow-500', 'border-teal-500', 'border-slate-500', 'border-gray-400'];
+                newItineraryItem.colorClass = colorPool[Math.floor(Math.random() * colorPool.length)];
+            }
+            const item = { ...newItineraryItem, id: newItineraryItem.id || generateId() }; 
+            // Cleanup old location if day changed
+            if(item.id) {
+                itinerary.forEach((dayItems, dIdx) => {
+                    if(dIdx !== item.dayIndex) {
+                        const foundIdx = dayItems.findIndex(x => x.id === item.id);
+                        if(foundIdx !== -1) dayItems.splice(foundIdx, 1);
+                    }
+                });
+            }
+            const target = itinerary[item.dayIndex]; 
+            if(!target) return;
+            if (newItineraryItem.id) {
+                const idx = target.findIndex(x=>x.id===item.id);
+                if(idx!==-1) target[idx] = item; else target.push(item);
+            } else { target.push(item); }
+            
+            target.sort((a,b) => (a.time||'').localeCompare(b.time||'')); 
+            itineraryModalOpen.value = false; saveAll();
+            if(selectedMapLocation.value?.id === item.id) showLocationOnMap(item);
+        }
+        function removeItineraryItem(id) { if(!confirm('Delete event?')) return; itinerary[selectedDay.value] = itinerary[selectedDay.value].filter(x=>x.id!==id); saveAll(); }
+        function addQuickItinerary() { 
+            itinerary[selectedDay.value].push({id: generateId(), time: quickItinerary.time, title: quickItinerary.title, address: '', note: ''});
+            itinerary[selectedDay.value].sort((a,b)=>(a.time||'').localeCompare(b.time||'')); 
+            quickItinerary.title=''; saveAll(); 
+        }
+        function selectDay(i) { 
+            selectedDay.value = i;
+            selectedMapLocation.value = null;
+            if (i === 'prep') nextTick(() => initSortable('sortable-pre-notes', preTripNotes.value));
+        }
+
+        // Info & Member Logic
+        function openInfoModal(item) { Object.assign(newInfoItem, item || {id:null, title:'', note:''}); infoModalOpen.value = true; }
+        function saveInfoItem() { 
+            if(!newInfoItem.id) infoList.value.push({...newInfoItem, id:generateId()});
+            else { const idx = infoList.value.findIndex(x=>x.id===newInfoItem.id); if(idx!==-1) infoList.value[idx]={...newInfoItem}; } 
+            infoModalOpen.value=false; saveAll(); nextTick(() => initSortable('sortable-info', infoList.value));
+        }
+        function removeInfo(id) { if(!confirm('Delete info?')) return; infoList.value = infoList.value.filter(x=>x.id!==id); infoModalOpen.value = false; saveAll(); }
+        function openMemberModal() { memberModalOpen.value = true; }
+        function addMember() { if(newMemberName.value && !members.value.includes(newMemberName.value)) { members.value.push(newMemberName.value); newMemberName.value = ''; saveAll(); } }
+        function removeMember(m) { if(confirm('Remove member?')) { members.value = members.value.filter(x => x !== m); saveAll(); } }
+
+        // Settings Logic
+        function cancelSettings() { Object.assign(editingSettings, settings); showToast("Changes Discarded"); }
+        function saveSettings() {
+            Object.assign(settings, editingSettings);
+            const days = dayList.value.length;
+            if(itinerary.length < days) { while(itinerary.length < days) itinerary.push([]); } 
+            else if(itinerary.length > days) { itinerary.splice(days); }
+            if(selectedDay.value >= days) selectedDay.value = 0;
+            saveAll(); showToast("Settings Saved!");
+        }
+
+        // Admin Logic
+        function attemptAdminLogin() {
+            if (adminCreds.u === 'admin' && adminCreds.p === '1234') {
+                isAdminLoggedIn.value = true; adminLoginOpen.value = false;
+                newTripIdInput.value = tripId.value; adminEditOpen.value = true;
+                adminCreds.u = ''; adminCreds.p = '';
+            } else { alert('Access Denied'); }
+        }
+        async function saveActiveTripId() {
+            if (!newTripIdInput.value) return;
+            const { error } = await supabaseClient.from('app_config').update({ active_trip_id: newTripIdInput.value }).eq('id', 1);
+            if (!error) { tripId.value = newTripIdInput.value; location.reload(); } 
+            else { alert('Update Failed'); }
+        }
+
+        // --- 12. Persistence & Init ---
+        async function initApp() {
+            syncState.value = 'loading';
+            try {
+                const { data, error } = await supabaseClient.from('app_config').select('active_trip_id').eq('id', 1).single();
+                if (error || !data?.active_trip_id) throw new Error('Config Error');
+                tripId.value = data.active_trip_id;
+                await fetchCloud();
+            } catch (e) {
+                console.error(e);
+                syncState.value = 'error'; 
+            }
+        }
+
+        async function fetchCloud() {
+            if (!tripId.value) return;
+            try {
+                const { data } = await supabaseClient.from('trip_data').select('content').eq('id', tripId.value).single();
+                if(data?.content) {
+                    const c = data.content;
+                    if(c.settings) { Object.assign(settings, c.settings); Object.assign(editingSettings, settings); }
+                    if(c.itinerary) c.itinerary.forEach((d,i) => itinerary[i] = d || []);
+                    if(c.preTripNotes) preTripNotes.value = c.preTripNotes;
+                    if(c.shoppingList) shoppingList.value = c.shoppingList;
+                    if(c.expenses) expenses.value = c.expenses;
+                    if(c.infoList) infoList.value = c.infoList;
+                    if(c.flights) Object.assign(flights, c.flights);
+                    else if(c.flight) Object.assign(flights.outbound, c.flight);
+                    if(c.members) members.value = c.members;
+                }
+                syncState.value = 'synced'; isInitialized.value = true;
+            } catch { syncState.value = 'error'; }
+        }
+        
+        async function saveAll() {
+            if(!isInitialized.value || !tripId.value) return;
+            syncState.value = 'saving';
+            const payload = { settings, itinerary, preTripNotes: preTripNotes.value, shoppingList: shoppingList.value, expenses: expenses.value, infoList: infoList.value, flights, members: members.value };
+            await supabaseClient.from('trip_data').upsert({ id: tripId.value, content: payload, updated_at: new Date() });
+            setTimeout(() => syncState.value = 'synced', 800);
+        }
+
+        async function fetchRate() {
+            try {
+                const res = await fetch(`https://open.er-api.com/v6/latest/${settings.localCurrency}`);
+                const d = await res.json();
+                if(d?.rates?.[settings.homeCurrency]) {
+                    currentLiveRate.value = 1 / d.rates[settings.homeCurrency];
+                    lastRateUpdateLabel.value = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+                }
+            } catch {}
+        }
+
+        async function fetchWeather() {
+             const loc = settings.weatherLocEn || settings.weatherLoc || 'Taipei';
+             try {
+                 const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(loc)}&count=1&language=en&format=json`);
+                 const geoData = await geoRes.json();
+                 if (!geoData.results || geoData.results.length === 0) return;
+                 const { latitude, longitude } = geoData.results[0];
+                 const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&hourly=precipitation_probability,relativehumidity_2m,apparent_temperature,uv_index&daily=temperature_2m_max,temperature_2m_min&timezone=auto`);
+                 const d = await res.json();
+                 if(d.current_weather) { 
+                    weather.temp = Math.round(d.current_weather.temperature);
+                    weather.code = d.current_weather.weathercode;
+                    weather.warning = (weather.code >= 95 || weather.code >= 63) ? '!' : null;
+                 }
+                 if(d.hourly) {
+                    const h = new Date().getHours();
+                    weather.feelsLike = d.hourly.apparent_temperature ? Math.round(d.hourly.apparent_temperature[h]) : '--';
+                    weather.humidity = d.hourly.relativehumidity_2m ? d.hourly.relativehumidity_2m[h] : '--';
+                    weather.uv = d.hourly.uv_index ? d.hourly.uv_index[h] : '--';
+                    weather.rain = d.hourly.precipitation_probability ? (d.hourly.precipitation_probability[h] || 0) : 0;
+                 }
+                 if(d.daily) { 
+                    weather.max = Math.round(d.daily.temperature_2m_max[0]);
+                    weather.min = Math.round(d.daily.temperature_2m_min[0]); 
+                 }
+             } catch {}
+        }
+
+        function initSortable(id, list) {
+            const el = document.getElementById(id);
+            if(el) Sortable.create(el, { handle:'.drag-handle', animation:150, onEnd:(evt)=>{ const item = list.splice(evt.oldIndex, 1)[0]; list.splice(evt.newIndex, 0, item); saveAll(); }});
+        }
+
+        function runIntroSequence() {
+            setTimeout(() => { introProgress.value = 60; }, 50);
+            setTimeout(() => { introProgress.value = 75; }, 900);
+            setTimeout(() => { introProgress.value = 90; }, 1500);
+            const checkReadyInterval = setInterval(() => {
+                if (introProgress.value >= 90 && introAppReady.value) {
+                    clearInterval(checkReadyInterval);
+                    finishIntro();
+                }
+            }, 100);
+        }
+
+        function finishIntro() {
+            introProgress.value = 100;
+            setTimeout(() => {
+                introFading.value = true; 
+                setTimeout(() => { introVisible.value = false; }, 200);
+            }, 250);
+        }
+
+        // --- 13. Lifecycle Hooks ---
+        onMounted(() => {
+            runIntroSequence();
+            Object.assign(editingSettings, settings);
+            initApp().then(() => {
+                                introAppReady.value = true;
+                fetchRate(); fetchWeather(); startPillLoop();
+   
+             autoToggleFlightCard();
+                nextTick(() => { 
+                    if(currentTab.value === '首頁' && isPreTrip.value) initSortable('sortable-pre-home', preTripNotes.value); 
+                    initSortable('sortable-info', infoList.value);
+                    if(currentTab.value === '購物') initSortable('sortable-shop-page', shoppingList.value);
+                    if(currentTab.value === '行程' && selectedDay.value === 'prep') initSortable('sortable-pre-notes', preTripNotes.value);
+                });
+            });
+            setInterval(fetchRate, 600000);
+        });
+
+        // Watchers Grouped
+        watch(currentTab, (val) => {
+            if(val === '行程' && !isAnyModalOpen.value) { nextTick(addSwipeListener); } else { removeSwipeListener(); }
+            // Sortable Re-init logic
+            if(val === '行程' && selectedDay.value === 'prep') nextTick(() => initSortable('sortable-pre-notes', preTripNotes.value));
+            if(val === '首頁' && isPreTrip.value) nextTick(() => initSortable('sortable-pre-home', preTripNotes.value));
+            if(val === '購物') nextTick(() => initSortable('sortable-shop-page', shoppingList.value));
+        });
+
+        watch(selectedDay, (val) => {
+            if(val === 'prep' && currentTab.value === '行程') nextTick(() => initSortable('sortable-pre-notes', preTripNotes.value));
+        });
+
+        watch(expenseFilter, (val) => {
+            if (val === 'settlement') { activeCategory.value = null; nextTick(drawSettlementChart); }
+        });
+        watch([expenses, lang], () => { if (expenseFilter.value === 'settlement') nextTick(drawSettlementChart); }, { deep: true });
+        
+        watch(selectedMapLocation, (val) => { val ? (tempMapApp.value = mapApp.value) : (tempMapApp.value = null); });
+
+        // Swipe Listener Management
+        watch(isAnyModalOpen, (isOpen) => { if(isOpen) removeSwipeListener(); else if(currentTab.value === '行程') addSwipeListener(); });
+
+        return {
+            introVisible, introFading, introProgress, introText, introStep,
+            swipeContainer, swipeContentVisual, visualSwipeStyle, bounceClass,
+            appVersion, currentTab, syncState, syncStatusText, lang, t, toggleLang, showToast, notification,
+            settings, editingSettings, saveSettings, cancelSettings, headerDateRange, 
+            dayList, getDayHeader, itinerary, preTripNotes, shoppingList, expenses, totalExpense, expensesBreakdown, infoList,
+            currentFlightView, isFlightMinimized, displayedFlight, openFlightModal, flightModalOpen, newFlight, saveFlight, syncModalToView,
+            rateDisplayMode, toggleRateOrder, displayedRate, quickEstAmount, quickEstInput, quickEstResult, formatQuickEst, unformatQuickEst, captureQuickEstFocus, clearQuickEstOnRateCardBg, lastRateUpdateLabel, weather, weatherIconClass,
+            selectedDay, selectDay, sortedItinerary, openItineraryModal, itineraryModalOpen, newItineraryItem, saveItineraryItem, removeItineraryItem, quickItinerary, addQuickItinerary,
+            preNoteModalOpen, editingPreNote, openPreNoteModal, savePreNoteEdit, removePreNote, togglePreNoteDone,
+            shoppingModalOpen, newShoppingItem, openShoppingModal, saveShoppingItem, removeShoppingItem,
+            expenseModalOpen, newExpense, expenseFilter, filteredExpenses, settlementList, openExpenseModal, handleCalcInput, saveExpense, removeExpense,
+            memberModalOpen, members, newMemberName, openMemberModal, addMember, removeMember, toggleParticipant, toggleAllParticipants,
+            infoModalOpen, newInfoItem, openInfoModal, saveInfoItem, removeInfo,
+            imageViewer, isSocialLink, getSocialIcon, formatNumber, expenseCats, getCategoryIcon, openImageViewer,
+            selectedMapLocation, showLocationOnMap, mapApp, selectMapApp, tempMapApp, openMap, openExternalLink, addressPlaceholder, 
+            jumpToShoppingItem, scrollToTop, jumpToPreNote, goToExpenseList, isPreTrip, currentTripDayIndex, newPreNoteInput,
+            tempImages, handleMultiFileUpload, removeTempImage, closeImageViewer,
+            handleViewerTouchStart, handleViewerTouchMove, handleViewerTouchEnd,
+            dayColors, settlementCanvas, activeCategory, handleChartClick, catColors,
+                        isAdminLoggedIn, adminLoginOpen, adminEditOpen, adminCreds, attemptAdminLogin, saveActiveTripId, newTripIdInput, goToPrepInput,
+            navPillModalOpen, newNavAddress, navPillLabel, navPillIcon, handlePillDown, handlePillUp, handlePillLeave, saveNavAddress
+        };
+      }
+    }).mount('#app');
+</script>
+</html>
