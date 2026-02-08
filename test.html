@@ -2641,7 +2641,17 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
                         isAdminLoggedIn, adminLoginOpen, adminEditOpen, adminCreds, attemptAdminLogin, saveActiveTripId, newTripIdInput, goToPrepInput,
             navPillModalOpen, newNavAddress, navPillLabel, navPillIcon, handlePillDown, handlePillUp, handlePillLeave, saveNavAddress
         };
-      }
+            }
     }).mount('#app');
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('PWA: SW registered', reg.scope))
+        .catch(err => console.log('PWA: SW failed', err));
+    });
+  }
 </script>
 </html>
