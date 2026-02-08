@@ -559,10 +559,12 @@ rounded-full
                        <div class="ios-card p-3 relative group overflow-hidden h-full flex flex-col justify-between">
                 <div class="flex justify-between items-start">
                     <i :class="weatherIconClass" class="text-[3.5rem] leading-none text-gray-800/80 drop-shadow-sm -ml-1 mt-1"></i>
-                                                            <div class="text-right z-10 ml-2 flex-1 min-w-0" style="container-type: inline-size;">
-                       <span class="font-bold text-gray-600 uppercase block whitespace-nowrap text-[clamp(20px,12cqw,20px)]">
-                           {{ lang === 'zh' ? (settings.weatherLoc || 'Taipei') : (settings.weatherLocEn || settings.weatherLoc || 'Taipei') }}
+                                                                                <div class="text-right z-10 ml-2 flex-1 min-w-0" style="container-type: inline-size;">
+                       <span class="font-bold text-gray-600 uppercase block whitespace-nowrap text-[clamp(14px,12cqw,24px)]">
+                        
+   {{ lang === 'zh' ? (settings.weatherLoc || 'Taipei') : (settings.weatherLocEn || settings.weatherLoc || 'Taipei') }}
                        </span>
+
                     </div>
                 </div>
                 <div class="flex justify-between items-end mt-2">
