@@ -385,7 +385,7 @@
 
       <div>
         <div class="text-[10px] font-bold text-gray-500 tracking-wide mb-0.5 font-mono flex items-center gap-2">
-           TRAVEL SYNC
+           TRAVEL SYNC {{ appVersion }}
             <div class="flex items-center gap-1.5">
                <div class="w-2 h-2 rounded-full transition-all duration-300"
                     :class="{'bg-[#34C759]': syncState === 'synced', 'bg-[#FFCC00] animate-pulse': syncState === 'syncing', 'bg-[#FF3B30]': syncState === 'error', 'bg-gray-400': syncState === 'offline'}"></div>
