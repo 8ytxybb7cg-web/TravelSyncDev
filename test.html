@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync Dev14.03</title>
+  <title>Travel Sync Dev14.11</title>
 
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#F2F2F7">
@@ -18,19 +18,28 @@
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
   <style>
-        :root {
+            :root {
       --ios-bg: #F2F2F7;
-      /* iOS 26 Style: 降低白底濃度，讓背景透出來 */
-      --ios-card-bg: rgba(255, 255, 255, 0.55);
-      /* 增強邊框亮度，製造切割玻璃感 */
-      --ios-card-border: rgba(255, 255, 255, 0.65);
+      /* Visual: 提升通透度與色彩飽和度，模擬 iOS 18 玻璃感 */
+      --ios-card-bg: rgba(255, 255, 255, 0.60);
+      --ios-card-border: rgba(255, 255, 255, 0.4);
       --ios-primary: #007AFF;
-      /* 關鍵：加入 saturate(180%) 讓透視的顏色更鮮豔，增加模糊度 */
-      --glass-blur: blur(40px) saturate(180%);
+      --glass-blur: blur(50px) saturate(180%);
+      --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
       --hkg-navy: #353E53;
       --hkg-yellow: #E9EB4F;
       --hkg-red: #BF443B;
       --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    /* 統一物理觸感回饋：縮放與透明度變化 */
+    .active-press {
+      transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease;
+      cursor: pointer;
+    }
+    .active-press:active {
+      transform: scale(0.96);
+      opacity: 0.8;
     }
 
     body {
@@ -1480,7 +1489,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
     createApp({
       setup() {
         // --- 1. App State & Core Config ---
-        const appVersion = ref('v260208-14.03');
+        const appVersion = ref('v260208-14.11');
         const currentTab = ref('首頁');
         const syncState = ref('loading');
         const isInitialized = ref(false);
