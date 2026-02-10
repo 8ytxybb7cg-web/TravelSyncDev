@@ -4,10 +4,10 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync Dev14.03</title>
+  <title>Travel Sync Dev14.05</title>
 
   <link rel="manifest" href="./manifest.json">
-  <meta name="theme-color" content="#007AFF">
+  <meta name="theme-color" content="#F2F2F7">
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -18,19 +18,28 @@
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
   <style>
-        :root {
+            :root {
       --ios-bg: #F2F2F7;
-      /* iOS 26 Style: 降低白底濃度，讓背景透出來 */
-      --ios-card-bg: rgba(255, 255, 255, 0.55);
-      /* 增強邊框亮度，製造切割玻璃感 */
-      --ios-card-border: rgba(255, 255, 255, 0.65);
+      /* Visual: 提升通透度與色彩飽和度，模擬 iOS 18 玻璃感 */
+      --ios-card-bg: rgba(255, 255, 255, 0.60);
+      --ios-card-border: rgba(255, 255, 255, 0.4);
       --ios-primary: #007AFF;
-      /* 關鍵：加入 saturate(180%) 讓透視的顏色更鮮豔，增加模糊度 */
-      --glass-blur: blur(40px) saturate(180%);
+      --glass-blur: blur(50px) saturate(180%);
+      --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
       --hkg-navy: #353E53;
       --hkg-yellow: #E9EB4F;
       --hkg-red: #BF443B;
       --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    /* 統一物理觸感回饋：縮放與透明度變化 */
+    .active-press {
+      transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease;
+      cursor: pointer;
+    }
+    .active-press:active {
+      transform: scale(0.96);
+      opacity: 0.8;
     }
 
     body {
@@ -78,16 +87,16 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     
-    .ios-card {
+        .ios-card {
       background: var(--ios-card-bg);
       backdrop-filter: var(--glass-blur);
       -webkit-backdrop-filter: var(--glass-blur);
-      /* 複合邊框：外邊框 + 內部微光，增加立體感 */
-      border: 1px solid var(--ios-card-border); border-radius: 24px;
-      box-shadow: 
-        0 8px 32px 0 rgba(31, 38, 135, 0.07),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+      /* Visual: 更細緻的邊框光暈，移除過重的內陰影，改用柔和擴散陰影 */
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 28px;
+      box-shadow: var(--glass-shadow), inset 0 0 0 0.5px rgba(255, 255, 255, 0.5);
       overflow: hidden;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
         /* List Item Styles */
@@ -106,7 +115,11 @@
       border: 1px solid rgba(255,255,255,0.5);
       touch-action: manipulation;
     }
-    .ios-list-item:active { background: rgba(255, 255, 255, 0.95); transform: scale(0.98); }
+        .ios-list-item:active { 
+        background: rgba(255, 255, 255, 0.8); 
+        transform: scale(0.97);
+        border-color: rgba(255, 255, 255, 0.8);
+    }
     .task-done { text-decoration: line-through; color: #8E8E93; opacity: 0.7; }
 
     /* Action Buttons */
@@ -131,18 +144,16 @@
       background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(5px);
       z-index: 100; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px;
     }
-    .ios-modal-container {
-      /* 統一使用玻璃變數，保持通透 */
-      background: rgba(255, 255, 255, 0.70);
-      backdrop-filter: blur(50px) saturate(200%);
-      -webkit-backdrop-filter: blur(50px) saturate(200%);
-      border-radius: 36px;
+        .ios-modal-container {
+      background: rgba(250, 250, 255, 0.85); /* Slightly more opaque for legibility */
+      backdrop-filter: blur(50px) saturate(180%);
+      -webkit-backdrop-filter: blur(50px) saturate(180%);
+      border-radius: 40px; /* Smoother corners */
       display: flex; flex-direction: column; max-height: 90vh; width: 100%; max-width: 400px;
-      /* 更柔和深邃的陰影 */
-      box-shadow: 0 20px 60px rgba(0,0,0,0.15), inset 0 0 0 1px rgba(255,255,255,0.5);
+      box-shadow: 0 40px 80px rgba(0,0,0,0.2), inset 0 0 0 1px rgba(255,255,255,0.6);
       border: 1px solid rgba(255,255,255,0.4);
-/* 修復：強制裁切溢出的子元素背景，解決底部直角突出問題 */
       overflow: hidden;
+      transform: translateZ(0); /* Force hardware acceleration */
     }
     .ios-modal-header { padding: 16px; text-align: center; font-weight: 600; font-size: 17px; border-bottom: 0.5px solid rgba(0,0,0,0.1); position: relative;}
     .ios-modal-body { flex: 1; overflow-y: auto; padding: 20px; -webkit-overflow-scrolling: touch; }
@@ -150,8 +161,21 @@
     
     .ios-modal-footer { padding: 16px 20px; border-top: 0.5px solid rgba(0,0,0,0.1); display: flex; gap: 12px; background: rgba(255,255,255,0.5); }
     
-    .btn-ios-cancel { flex: 1; height: 44px; border-radius: 12px; background: rgba(118, 118, 128, 0.12); color: #000; font-weight: 600; }
-    .btn-ios-primary { flex: 1; height: 44px; border-radius: 12px; background: var(--ios-primary); color: white; font-weight: 600; box-shadow: 0 0 15px rgba(0, 122, 255, 0.4); }
+        .btn-ios-cancel { 
+        flex: 1; height: 48px; border-radius: 16px; /* Larger hit area & corners */
+        background: rgba(118, 118, 128, 0.12); color: #000; font-weight: 600; 
+        transition: all 0.2s;
+    }
+    .btn-ios-cancel:active { background: rgba(118, 118, 128, 0.2); transform: scale(0.98); }
+
+    .btn-ios-primary { 
+        flex: 1; height: 48px;
+        border-radius: 16px; 
+        background: var(--ios-primary); color: white; font-weight: 600; 
+        box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3);
+        transition: all 0.2s;
+    }
+    .btn-ios-primary:active { transform: scale(0.97); box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2); }
 
     .iphone-dock {
       background: rgba(255, 255, 255, 0.65);
@@ -302,29 +326,38 @@
         @keyframes icon-bounce { from { transform: translateY(0); } to { transform: translateY(-3px);
 } }
 
-    /* Dynamic Navigation Pill */
-        .dynamic-nav-pill {
+        /* Dynamic Navigation Pill - Dynamic Island Style */
+    .dynamic-nav-pill {
         position: fixed;
         top: calc(env(safe-area-inset-top) + 12px);
         left: 50%;
         transform: translateX(-50%);
-        background: #000000;
-        color: white;
+        background: rgba(0, 0, 0, 0.85); /* Deep dark glass */
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        color: rgba(255, 255, 255, 0.95);
         padding: 8px 16px;
-        border-radius: 24px;
+        border-radius: 100px; /* Fully rounded capsule */
         z-index: 60;
-        /* Above Header(50), Below Modal(100) */
         display: flex; align-items: center; justify-content: center;
         gap: 8px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        /* Visual: Subtle rim light for dark object */
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         font-size: 13px; font-weight: 600;
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        letter-spacing: 0.3px;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bouncy spring */
         cursor: pointer;
         user-select: none;
-        touch-action: none; /* Prevent browser zooming/scrolling on the pill */
-        width: 90px; /* Fix: Fixed width to prevent resize jitter */
+        touch-action: none;
+        width: auto;
+        min-width: 90px; /* Flex width */
         box-sizing: border-box;
     }
+    .dynamic-nav-pill:active {
+        transform: translateX(-50%) scale(0.92);
+    }
+
                 .dynamic-nav-pill span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             text-align: center;
     }
@@ -372,24 +405,24 @@
         <div class="bg-overlay"></div>
     </div>
 
-        <header @click="scrollToTop" class="cursor-pointer fixed top-0 left-0 right-0 z-50 pt-8 pb-3 px-6 flex justify-between items-end bg-white/10 backdrop-blur-xl border-b border-white/10 transition-all duration-300">
+                <header @click="scrollToTop" class="cursor-pointer fixed top-0 left-0 right-0 z-50 pt-10 pb-4 px-6 flex justify-between items-end bg-gradient-to-b from-white/30 to-white/5 backdrop-blur-xl shadow-[0_1px_0_0_rgba(255,255,255,0.2)] transition-all duration-300 active-press">
 
-      <div>
-        <div class="text-[10px] font-bold text-gray-500 tracking-wide mb-0.5 font-mono flex items-center gap-2">
-           TRAVEL SYNC
-            <div class="flex items-center gap-1.5">
-               <div class="w-2 h-2 rounded-full transition-all duration-300"
-                    :class="{'bg-[#34C759]': syncState === 'synced', 'bg-[#FFCC00] animate-pulse': syncState === 'syncing', 'bg-[#FF3B30]': syncState === 'error', 'bg-gray-400': syncState === 'offline'}"></div>
-               <span class="text-xs text-gray-400">{{ syncStatusText }}</span>
-           </div>
-        </div>
-                <h1 class="font-bold text-black tracking-tight flex items-baseline gap-2 whitespace-nowrap overflow-hidden text-[clamp(18px,5vw,30px)]">
+      <div class="flex flex-col justify-end">
+         <div class="flex items-center gap-1.5 mb-1">
+             <div class="w-2 h-2 rounded-full transition-all duration-300"
+                  :class="{'bg-[#34C759]': syncState === 'synced', 'bg-[#FFCC00] animate-pulse': syncState === 'syncing', 'bg-[#FF3B30]': syncState === 'error', 'bg-gray-400': syncState === 'offline'}"></div>
+             <span class="text-xs font-bold text-gray-400 font-mono">{{ syncStatusText }}</span>
+         </div>
+         <h1 class="font-bold text-black tracking-tight flex items-baseline gap-2 whitespace-nowrap overflow-hidden text-[clamp(18px,5vw,30px)]">
            <span v-if="(settings.route || '').startsWith('=')" v-html="(settings.route || '').substring(1)"></span>
-          <span v-else>{{ settings.route || t('tripRoute') }}</span>
-          <span class="font-medium text-gray-500 font-mono tracking-normal text-[0.5em] opacity-80">{{ headerDateRange }}</span>
+           <span v-else>{{ settings.route || t('tripRoute') }}</span>
+           <span class="font-medium text-gray-500 font-mono tracking-normal text-[0.5em] opacity-80">{{ headerDateRange }}</span>
         </h1>
       </div>
-      <div class="flex flex-col items-end gap-2">
+
+      <div class="flex flex-col items-end gap-0.5 pb-0.5">
+         <span class="text-[10px] font-bold text-gray-400 tracking-widest leading-none">TRAVEL SYNC</span>
+         <span class="text-[9px] font-mono text-gray-400 leading-none mb-1">{{ appVersion }}</span>
          <button @click="toggleLang" class="text-[10px] font-bold bg-gray-200/80 text-gray-600 px-2 py-0.5 rounded-md hover:bg-gray-300 transition-colors">
             {{ lang === 'zh' ? 'EN' : '繁' }}
          </button>
@@ -406,9 +439,10 @@
       
             <div v-if="currentTab === '首頁'" class="space-y-5 animate-fade-in pb-10">
         
-        <div class="relative transition-all duration-500 group">
-             <div class="rounded-[24px] overflow-hidden shadow-xl font-sans relative flex flex-col transition-all duration-300" 
-                  :class="isFlightMinimized ? 'min-h-[auto]' : 'min-h-[240px]'">
+                <div class="relative transition-all duration-500 group active-press">
+             <div class="rounded-[32px] overflow-hidden shadow-2xl shadow-blue-900/10 font-sans relative flex flex-col transition-all duration-300 border border-white/20" 
+                  :class="isFlightMinimized ?
+ 'min-h-[auto]' : 'min-h-[240px]'">
                   
                   <div class="hkg-header px-5 py-4 relative transition-all duration-300" :class="{'pb-4': !isFlightMinimized, 'pb-3': isFlightMinimized}">
                      <button @click.stop="isFlightMinimized = !isFlightMinimized" class="absolute top-4 left-4 z-30 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center backdrop-blur-md transition-colors">
@@ -500,8 +534,8 @@
              <p v-else class="text-xs text-blue-900/50 italic">{{ t('noInfo') }}</p>
         </section>
 
-        <div class="grid grid-cols-2 gap-4">
-                        <div class="ios-card p-4 relative overflow-hidden group">
+                <div class="grid grid-cols-2 gap-4">
+                        <div class="ios-card p-4 relative overflow-hidden group active-press">
                <div class="absolute inset-0 z-0" @mousedown="captureQuickEstFocus" @touchstart="captureQuickEstFocus" @click="clearQuickEstOnRateCardBg" aria-hidden="true"></div>
                <div class="relative z-10 flex justify-between items-start mb-2">
                    <div class="flex items-center gap-2">
@@ -553,10 +587,9 @@ rounded-full
                        <div v-if="quickEstAmount !== ''" class="text-right text-xs font-bold text-blue-600 mt-0.5 leading-none">≈ {{ settings.homeCurrency }} {{ quickEstResult }}</div>
                    </div>
            
-    </div>
+        </div>
             </div>
-            
-                       <div class="ios-card p-3 relative group overflow-hidden h-full flex flex-col justify-between">
+            <div class="ios-card p-3 relative group overflow-hidden h-full flex flex-col justify-between active-press">
                 <div class="flex justify-between items-start">
                     <i :class="weatherIconClass" class="text-[3.5rem] leading-none text-gray-800/80 drop-shadow-sm -ml-1 mt-1"></i>
                                                                                 <div class="text-right z-10 ml-2 flex-1 min-w-0" style="container-type: inline-size;">
@@ -1050,10 +1083,21 @@ rounded-full
                  <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('routeHeader') }}</label>
                  <input v-model="editingSettings.route" class="ios-input font-bold" placeholder="HKG ✈️ KIX">
              </div>
-             <div class="grid grid-cols-2 gap-4">
-                 <div><label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('startDate') }}</label><input v-model="editingSettings.startDate" type="date" class="ios-input"></div>
-                 <div><label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('endDate') }}</label><input v-model="editingSettings.endDate" type="date" class="ios-input"></div>
+                          <div class="grid grid-cols-2 gap-4">
+                 <div>
+                     <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('startDate') }}</label>
+                     <div @click="openDatePicker" class="ios-input flex items-center justify-center font-bold text-blue-600 cursor-pointer active:bg-gray-200/50 transition-colors" style="height: 44px;">
+                         {{ editingSettings.startDate || '-' }}
+                     </div>
+                 </div>
+                 <div>
+                     <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('endDate') }}</label>
+                     <div @click="openDatePicker" class="ios-input flex items-center justify-center font-bold text-blue-600 cursor-pointer active:bg-gray-200/50 transition-colors" style="height: 44px;">
+                         {{ editingSettings.endDate || '-' }}
+                     </div>
+                 </div>
              </div>
+
              <div class="grid grid-cols-2 gap-4">
                  <div><label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('localCurr') }}</label><input v-model="editingSettings.localCurrency" class="ios-input font-mono uppercase" placeholder="TWD"></div>
                  <div><label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('homeCurr') }}</label><input v-model="editingSettings.homeCurrency" class="ios-input font-mono uppercase" placeholder="HKD"></div>
@@ -1420,16 +1464,71 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
         </div>
     </div>
 
-    <div v-if="adminEditOpen" class="modal-backdrop">
+        <div v-if="adminEditOpen" class="modal-backdrop">
         <div class="ios-modal-container" style="max-width: 320px;">
             <div class="ios-modal-header">Active Trip ID</div>
             <div class="ios-modal-body space-y-3">
                 <div class="text-xs text-gray-400 text-center px-4">Modifying this will change the data source for ALL users immediately.</div>
                 <input v-model="newTripIdInput" class="ios-input font-mono text-center font-bold" placeholder="trip_id">
-            </div>
+             </div>
             <div class="ios-modal-footer">
                 <button @click="adminEditOpen=false" class="btn-ios-cancel">{{ t('cancel') }}</button>
                 <button @click="saveActiveTripId" class="btn-ios-primary">{{ t('save') }}</button>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="datePickerModalOpen" class="modal-backdrop" @click.self="datePickerModalOpen=false">
+        <div class="ios-modal-container" style="height: 520px; max-height: 90vh;">
+            <div class="ios-modal-header flex justify-between items-center px-4 bg-gray-50/80">
+                <button @click="changeMonth(-1)" class="p-2 text-blue-500 hover:bg-blue-50 rounded-full"><i class="ph-bold ph-caret-left"></i></button>
+                <span class="font-bold text-lg">{{ calendarHeader }}</span>
+                <button @click="changeMonth(1)" class="p-2 text-blue-500 hover:bg-blue-50 rounded-full"><i class="ph-bold ph-caret-right"></i></button>
+            </div>
+            
+            <div class="ios-modal-body flex flex-col p-0">
+                <div class="grid grid-cols-7 border-b border-gray-200 bg-gray-50/50">
+                    <div v-for="day in weekDays" :key="day" class="h-8 flex items-center justify-center text-[10px] font-bold text-gray-400 uppercase">
+                        {{ day }}
+                    </div>
+                </div>
+
+                <div class="flex-1 p-2 overflow-y-auto">
+                    <div class="grid grid-cols-7 gap-y-1">
+                        <div v-for="n in calendarPadStart" :key="'pad-'+n" class="aspect-square"></div>
+                        
+                        <div v-for="date in calendarDays" :key="date.ts" 
+                             @click="selectCalendarDate(date)"
+                             class="relative aspect-square flex items-center justify-center text-sm font-medium cursor-pointer select-none"
+                             :class="{
+                                'text-gray-300 pointer-events-none': date.isPast,
+                                'text-gray-800': !date.isPast
+                             }">
+                             
+                            <div v-if="date.inRange" class="absolute inset-y-1 inset-x-0 bg-blue-100 z-0"></div>
+                            
+                            <div v-if="date.isStart && date.isEnd" class="absolute inset-1 bg-[#007AFF] rounded-full z-10 shadow-md"></div>
+                            <div v-else-if="date.isStart" class="absolute inset-y-1 left-1 right-0 bg-blue-100 rounded-l-full z-0">
+                                <div class="absolute inset-0 bg-[#007AFF] rounded-full z-10 shadow-md"></div>
+                            </div>
+                            
+                            <div v-else-if="date.isEnd" class="absolute inset-y-1 left-0 right-1 bg-blue-100 rounded-r-full z-0">
+                                <div class="absolute inset-0 bg-[#007AFF] rounded-full z-10 shadow-md"></div>
+                            </div>
+
+                            <span class="relative z-20" :class="{'text-white font-bold': date.isStart || date.isEnd}">{{ date.day }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="px-4 py-2 text-center text-xs text-gray-400 border-t border-gray-100">
+                    {{ t('dateRangeTip') || (lang === 'zh' ? '點選開始與結束日期' : 'Select start and end dates') }}
+                </div>
+            </div>
+
+            <div class="ios-modal-footer">
+                <button @click="datePickerModalOpen=false" class="btn-ios-cancel">{{ t('cancel') }}</button>
+                <button @click="saveDateRange" class="btn-ios-primary" :disabled="!tempRange.start || !tempRange.end" :class="{'opacity-50': !tempRange.start || !tempRange.end}">{{ t('save') }}</button>
             </div>
         </div>
     </div>
@@ -1480,7 +1579,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
     createApp({
       setup() {
         // --- 1. App State & Core Config ---
-        const appVersion = ref('v260208-14.03');
+        const appVersion = ref('v260208-14.05');
         const currentTab = ref('首頁');
         const syncState = ref('loading');
         const isInitialized = ref(false);
@@ -1904,9 +2003,118 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             cycle();
         }
 
-        function stopPillLoop() { if(pillLoopTimer) clearTimeout(pillLoopTimer); }
+                function stopPillLoop() { if(pillLoopTimer) clearTimeout(pillLoopTimer);
+        }
 
         watch(() => settings.navAddress, startPillLoop);
+
+        // --- 7.1 Feature: Custom Date Range Picker ---
+        const datePickerModalOpen = ref(false);
+        const calendarViewDate = ref(new Date());
+        const tempRange = reactive({ start: null, end: null });
+
+        const weekDays = computed(() => lang.value === 'zh' ? ['日','一','二','三','四','五','六'] : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']);
+        
+        const calendarHeader = computed(() => {
+            const y = calendarViewDate.value.getFullYear();
+            const m = calendarViewDate.value.getMonth();
+            const monthNames = lang.value === 'zh' 
+                ? ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
+                : ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            return `${monthNames[m]} ${y}`;
+        });
+
+        const calendarPadStart = computed(() => {
+            const y = calendarViewDate.value.getFullYear();
+            const m = calendarViewDate.value.getMonth();
+            return new Date(y, m, 1).getDay();
+        });
+
+        const calendarDays = computed(() => {
+            const y = calendarViewDate.value.getFullYear();
+            const m = calendarViewDate.value.getMonth();
+            const daysInMonth = new Date(y, m + 1, 0).getDate();
+            const list = [];
+            
+            // Normalize times to midnight for comparison
+            const startTs = tempRange.start ? new Date(tempRange.start).setHours(0,0,0,0) : null;
+            const endTs = tempRange.end ? new Date(tempRange.end).setHours(0,0,0,0) : null;
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const current = new Date(y, m, d);
+                const currentTs = current.setHours(0,0,0,0);
+                // Simple past check (optional: allow editing past trips)
+                // const isPast = currentTs < new Date().setHours(0,0,0,0); 
+                
+                list.push({
+                    day: d,
+                    ts: currentTs,
+                    dateStr: `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`,
+                    isStart: startTs === currentTs,
+                    isEnd: endTs === currentTs,
+                    inRange: startTs && endTs && currentTs > startTs && currentTs < endTs,
+                    isPast: false 
+                });
+            }
+            return list;
+        });
+
+        function openDatePicker() {
+            // Initialize with current settings or today
+            if (editingSettings.startDate) {
+                calendarViewDate.value = new Date(editingSettings.startDate);
+                tempRange.start = editingSettings.startDate;
+                tempRange.end = editingSettings.endDate;
+            } else {
+                calendarViewDate.value = new Date();
+                tempRange.start = null;
+                tempRange.end = null;
+            }
+            datePickerModalOpen.value = true;
+        }
+
+        function changeMonth(delta) {
+            const d = new Date(calendarViewDate.value);
+            d.setMonth(d.getMonth() + delta);
+            calendarViewDate.value = d;
+        }
+
+        function selectCalendarDate(dateObj) {
+            if (dateObj.isPast) return;
+            
+            // Logic: 
+            // 1. If nothing selected, set Start.
+            // 2. If Start selected but no End, set End. Swap if needed.
+            // 3. If both selected, clear and set new Start.
+            
+            if (!tempRange.start && !tempRange.end) {
+                tempRange.start = dateObj.dateStr;
+            } else if (tempRange.start && !tempRange.end) {
+                if (dateObj.dateStr === tempRange.start) {
+                    // Clicked same day -> Single day trip (Start == End)
+                    tempRange.end = dateObj.dateStr;
+                } else if (dateObj.ts < new Date(tempRange.start).getTime()) {
+                    // Clicked earlier -> Swap
+                    tempRange.end = tempRange.start;
+                    tempRange.start = dateObj.dateStr;
+                } else {
+                    // Clicked later -> Normal range
+                    tempRange.end = dateObj.dateStr;
+                }
+            } else {
+                // Reset interaction
+                tempRange.start = dateObj.dateStr;
+                tempRange.end = null;
+            }
+        }
+
+        function saveDateRange() {
+            if (tempRange.start && tempRange.end) {
+                editingSettings.startDate = tempRange.start;
+                editingSettings.endDate = tempRange.end;
+                datePickerModalOpen.value = false;
+            }
+        }
 
         // --- 8. Feature: Upload & Image Viewer ---
         const tempImages = ref([]);
@@ -2655,8 +2863,11 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             handleViewerTouchStart, handleViewerTouchMove, handleViewerTouchEnd,
             dayColors, settlementCanvas, activeCategory, handleChartClick, catColors,
                         isAdminLoggedIn, adminLoginOpen, adminEditOpen, adminCreds, attemptAdminLogin, saveActiveTripId, newTripIdInput, goToPrepInput,
-            navPillModalOpen, newNavAddress, navPillLabel, navPillIcon, handlePillDown, handlePillUp, handlePillLeave, saveNavAddress
-        };
+                        navPillModalOpen, newNavAddress, navPillLabel, navPillIcon, handlePillDown, handlePillUp, handlePillLeave, saveNavAddress,
+            // Date Picker Exports
+            datePickerModalOpen, calendarViewDate, tempRange, weekDays, calendarHeader, calendarPadStart, calendarDays, 
+            openDatePicker, changeMonth, selectCalendarDate, saveDateRange
+            };
             }
     }).mount('#app');
 </script>
