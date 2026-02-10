@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync Dev14.15</title>
+  <title>Travel Sync Dev14.16</title>
 
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#F2F2F7">
@@ -115,7 +115,11 @@
       border: 1px solid rgba(255,255,255,0.5);
       touch-action: manipulation;
     }
-    .ios-list-item:active { background: rgba(255, 255, 255, 0.95); transform: scale(0.98); }
+        .ios-list-item:active { 
+        background: rgba(255, 255, 255, 0.8); 
+        transform: scale(0.97);
+        border-color: rgba(255, 255, 255, 0.8);
+    }
     .task-done { text-decoration: line-through; color: #8E8E93; opacity: 0.7; }
 
     /* Action Buttons */
@@ -1509,7 +1513,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
     createApp({
       setup() {
         // --- 1. App State & Core Config ---
-        const appVersion = ref('v260208-14.15');
+        const appVersion = ref('v260208-14.16');
         const currentTab = ref('首頁');
         const syncState = ref('loading');
         const isInitialized = ref(false);
