@@ -18,19 +18,28 @@
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
   <style>
-        :root {
+            :root {
       --ios-bg: #F2F2F7;
-      /* iOS 26 Style: 降低白底濃度，讓背景透出來 */
-      --ios-card-bg: rgba(255, 255, 255, 0.55);
-      /* 增強邊框亮度，製造切割玻璃感 */
-      --ios-card-border: rgba(255, 255, 255, 0.65);
+      /* Visual: 提升通透度與色彩飽和度，模擬 iOS 18 玻璃感 */
+      --ios-card-bg: rgba(255, 255, 255, 0.60);
+      --ios-card-border: rgba(255, 255, 255, 0.4);
       --ios-primary: #007AFF;
-      /* 關鍵：加入 saturate(180%) 讓透視的顏色更鮮豔，增加模糊度 */
-      --glass-blur: blur(40px) saturate(180%);
+      --glass-blur: blur(50px) saturate(180%);
+      --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
       --hkg-navy: #353E53;
       --hkg-yellow: #E9EB4F;
       --hkg-red: #BF443B;
       --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    /* 統一物理觸感回饋：縮放與透明度變化 */
+    .active-press {
+      transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease;
+      cursor: pointer;
+    }
+    .active-press:active {
+      transform: scale(0.96);
+      opacity: 0.8;
     }
 
     body {
@@ -78,16 +87,16 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     
-    .ios-card {
+        .ios-card {
       background: var(--ios-card-bg);
       backdrop-filter: var(--glass-blur);
       -webkit-backdrop-filter: var(--glass-blur);
-      /* 複合邊框：外邊框 + 內部微光，增加立體感 */
-      border: 1px solid var(--ios-card-border); border-radius: 24px;
-      box-shadow: 
-        0 8px 32px 0 rgba(31, 38, 135, 0.07),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+      /* Visual: 更細緻的邊框光暈，移除過重的內陰影，改用柔和擴散陰影 */
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 28px;
+      box-shadow: var(--glass-shadow), inset 0 0 0 0.5px rgba(255, 255, 255, 0.5);
       overflow: hidden;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
         /* List Item Styles */
@@ -302,28 +311,36 @@
         @keyframes icon-bounce { from { transform: translateY(0); } to { transform: translateY(-3px);
 } }
 
-    /* Dynamic Navigation Pill */
-        .dynamic-nav-pill {
+        /* Dynamic Navigation Pill - Dynamic Island Style */
+    .dynamic-nav-pill {
         position: fixed;
         top: calc(env(safe-area-inset-top) + 12px);
         left: 50%;
         transform: translateX(-50%);
-        background: #000000;
-        color: white;
+        background: rgba(0, 0, 0, 0.85); /* Deep dark glass */
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        color: rgba(255, 255, 255, 0.95);
         padding: 8px 16px;
-        border-radius: 24px;
+        border-radius: 100px; /* Fully rounded capsule */
         z-index: 60;
-        /* Above Header(50), Below Modal(100) */
         display: flex; align-items: center; justify-content: center;
         gap: 8px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        /* Visual: Subtle rim light for dark object */
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         font-size: 13px; font-weight: 600;
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        letter-spacing: 0.3px;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bouncy spring */
         cursor: pointer;
         user-select: none;
-        touch-action: none; /* Prevent browser zooming/scrolling on the pill */
-        width: 90px; /* Fix: Fixed width to prevent resize jitter */
+        touch-action: none;
+        width: auto;
+        min-width: 90px; /* Flex width */
         box-sizing: border-box;
+    }
+    .dynamic-nav-pill:active {
+        transform: translateX(-50%) scale(0.92);
     }
                 .dynamic-nav-pill span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             text-align: center;
