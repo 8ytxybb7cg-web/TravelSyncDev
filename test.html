@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync Dev14.13</title>
+  <title>Travel Sync Dev14.14</title>
 
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#F2F2F7">
@@ -140,18 +140,16 @@
       background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(5px);
       z-index: 100; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px;
     }
-    .ios-modal-container {
-      /* 統一使用玻璃變數，保持通透 */
-      background: rgba(255, 255, 255, 0.70);
-      backdrop-filter: blur(50px) saturate(200%);
-      -webkit-backdrop-filter: blur(50px) saturate(200%);
-      border-radius: 36px;
+        .ios-modal-container {
+      background: rgba(250, 250, 255, 0.85); /* Slightly more opaque for legibility */
+      backdrop-filter: blur(50px) saturate(180%);
+      -webkit-backdrop-filter: blur(50px) saturate(180%);
+      border-radius: 40px; /* Smoother corners */
       display: flex; flex-direction: column; max-height: 90vh; width: 100%; max-width: 400px;
-      /* 更柔和深邃的陰影 */
-      box-shadow: 0 20px 60px rgba(0,0,0,0.15), inset 0 0 0 1px rgba(255,255,255,0.5);
+      box-shadow: 0 40px 80px rgba(0,0,0,0.2), inset 0 0 0 1px rgba(255,255,255,0.6);
       border: 1px solid rgba(255,255,255,0.4);
-/* 修復：強制裁切溢出的子元素背景，解決底部直角突出問題 */
       overflow: hidden;
+      transform: translateZ(0); /* Force hardware acceleration */
     }
     .ios-modal-header { padding: 16px; text-align: center; font-weight: 600; font-size: 17px; border-bottom: 0.5px solid rgba(0,0,0,0.1); position: relative;}
     .ios-modal-body { flex: 1; overflow-y: auto; padding: 20px; -webkit-overflow-scrolling: touch; }
@@ -1498,7 +1496,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
     createApp({
       setup() {
         // --- 1. App State & Core Config ---
-        const appVersion = ref('v260208-14.13');
+        const appVersion = ref('v260208-14.14');
         const currentTab = ref('首頁');
         const syncState = ref('loading');
         const isInitialized = ref(false);
