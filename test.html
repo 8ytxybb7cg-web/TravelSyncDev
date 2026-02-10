@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync Dev14.11</title>
+  <title>Travel Sync Dev14.12</title>
 
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#F2F2F7">
@@ -87,16 +87,16 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     
-    .ios-card {
+        .ios-card {
       background: var(--ios-card-bg);
       backdrop-filter: var(--glass-blur);
       -webkit-backdrop-filter: var(--glass-blur);
-      /* 複合邊框：外邊框 + 內部微光，增加立體感 */
-      border: 1px solid var(--ios-card-border); border-radius: 24px;
-      box-shadow: 
-        0 8px 32px 0 rgba(31, 38, 135, 0.07),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+      /* Visual: 更細緻的邊框光暈，移除過重的內陰影，改用柔和擴散陰影 */
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 28px;
+      box-shadow: var(--glass-shadow), inset 0 0 0 0.5px rgba(255, 255, 255, 0.5);
       overflow: hidden;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
         /* List Item Styles */
@@ -1489,7 +1489,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
     createApp({
       setup() {
         // --- 1. App State & Core Config ---
-        const appVersion = ref('v260208-14.11');
+        const appVersion = ref('v260208-14.12');
         const currentTab = ref('首頁');
         const syncState = ref('loading');
         const isInitialized = ref(false);
