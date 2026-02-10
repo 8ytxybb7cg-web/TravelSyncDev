@@ -440,8 +440,10 @@
             <div v-if="currentTab === '首頁'" class="space-y-5 animate-fade-in pb-10">
         
         <div class="relative transition-all duration-500 group">
-             <div class="rounded-[24px] overflow-hidden shadow-xl font-sans relative flex flex-col transition-all duration-300" 
-                  :class="isFlightMinimized ? 'min-h-[auto]' : 'min-h-[240px]'">
+                     <div class="relative transition-all duration-500 group active-press">
+             <div class="rounded-[32px] overflow-hidden shadow-2xl shadow-blue-900/10 font-sans relative flex flex-col transition-all duration-300 border border-white/20" 
+                  :class="isFlightMinimized ?
+ 'min-h-[auto]' : 'min-h-[240px]'">
                   
                   <div class="hkg-header px-5 py-4 relative transition-all duration-300" :class="{'pb-4': !isFlightMinimized, 'pb-3': isFlightMinimized}">
                      <button @click.stop="isFlightMinimized = !isFlightMinimized" class="absolute top-4 left-4 z-30 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center backdrop-blur-md transition-colors">
