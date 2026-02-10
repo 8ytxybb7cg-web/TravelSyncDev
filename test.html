@@ -1084,8 +1084,15 @@ rounded-full
                  <input v-model="editingSettings.route" class="ios-input font-bold" placeholder="HKG ✈️ KIX">
              </div>
              <div class="grid grid-cols-2 gap-4">
-                 <div><label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('startDate') }}</label><input v-model="editingSettings.startDate" type="date" class="ios-input"></div>
-                 <div><label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('endDate') }}</label><input v-model="editingSettings.endDate" type="date" class="ios-input"></div>
+                                  <div @click="dateRangeModalOpen = true">
+                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('startDate') }}</label>
+                    <div class="ios-input flex items-center">{{ editingSettings.startDate }}</div>
+                 </div>
+                 <div @click="dateRangeModalOpen = true">
+                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('endDate') }}</label>
+                    <div class="ios-input flex items-center">{{ editingSettings.endDate }}</div>
+                 </div>
+
              </div>
              <div class="grid grid-cols-2 gap-4">
                  <div><label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('localCurr') }}</label><input v-model="editingSettings.localCurrency" class="ios-input font-mono uppercase" placeholder="TWD"></div>
@@ -1425,6 +1432,26 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
         </div>
     </div>
 
+                <div v-if="dateRangeModalOpen" class="modal-backdrop" @click.self="dateRangeModalOpen=false">
+        <div class="ios-modal-container">
+            <div class="ios-modal-header">{{ t('editEvent') }} ({{ t('startDate') }} / {{ t('endDate') }})</div>
+            <div class="ios-modal-body space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-1 uppercase">{{ t('startDate') }}</label>
+                    <input v-model="editingSettings.startDate" type="date" class="ios-input font-bold text-lg text-center h-12">
+                </div>
+                <div class="flex justify-center"><i class="ph-bold ph-arrow-down text-gray-300"></i></div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-1 uppercase">{{ t('endDate') }}</label>
+                    <input v-model="editingSettings.endDate" type="date" class="ios-input font-bold text-lg text-center h-12">
+                </div>
+            </div>
+            <div class="ios-modal-footer">
+                <button @click="dateRangeModalOpen=false" class="btn-ios-primary">{{ t('done') }}</button>
+            </div>
+        </div>
+    </div>
+
             <div v-if="adminLoginOpen" class="modal-backdrop" @click.self="adminLoginOpen=false">
         <div class="ios-modal-container" style="max-width: 320px;">
             <div class="ios-modal-header">Admin Login</div>
@@ -1585,7 +1612,9 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
         const dayColors = ['border-purple-500', 'border-[#007AFF]', 'border-pink-500', 'border-orange-500', 'border-yellow-500', 'border-teal-500', 'border-slate-500', 'border-gray-400'];
 
         // --- 4. Modals State ---
-        const flightModalOpen = ref(false); const newFlight = reactive({});
+        const flightModalOpen = ref(false);
+        const dateRangeModalOpen = ref(false);
+        const newFlight = reactive({});
         const preNoteModalOpen = ref(false); const editingPreNote = reactive({});
         const shoppingModalOpen = ref(false); const newShoppingItem = reactive({});
         const expenseModalOpen = ref(false); const newExpense = reactive({});
@@ -2673,7 +2702,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             appVersion, currentTab, syncState, syncStatusText, lang, t, toggleLang, showToast, notification,
             settings, editingSettings, saveSettings, cancelSettings, headerDateRange, 
             dayList, getDayHeader, itinerary, preTripNotes, shoppingList, expenses, totalExpense, expensesBreakdown, infoList,
-            currentFlightView, isFlightMinimized, displayedFlight, openFlightModal, flightModalOpen, newFlight, saveFlight, syncModalToView,
+            currentFlightView, isFlightMinimized, displayedFlight, openFlightModal, flightModalOpen, dateRangeModalOpen, newFlight, saveFlight, syncModalToView,
             rateDisplayMode, toggleRateOrder, displayedRate, quickEstAmount, quickEstInput, quickEstResult, formatQuickEst, unformatQuickEst, captureQuickEstFocus, clearQuickEstOnRateCardBg, lastRateUpdateLabel, weather, weatherIconClass,
             selectedDay, selectDay, sortedItinerary, openItineraryModal, itineraryModalOpen, newItineraryItem, saveItineraryItem, removeItineraryItem, quickItinerary, addQuickItinerary,
             preNoteModalOpen, editingPreNote, openPreNoteModal, savePreNoteEdit, removePreNote, togglePreNoteDone,
