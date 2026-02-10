@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync Dev14.12</title>
+  <title>Travel Sync Dev14.13</title>
 
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#F2F2F7">
@@ -311,29 +311,38 @@
         @keyframes icon-bounce { from { transform: translateY(0); } to { transform: translateY(-3px);
 } }
 
-    /* Dynamic Navigation Pill */
-        .dynamic-nav-pill {
+        /* Dynamic Navigation Pill - Dynamic Island Style */
+    .dynamic-nav-pill {
         position: fixed;
         top: calc(env(safe-area-inset-top) + 12px);
         left: 50%;
         transform: translateX(-50%);
-        background: #000000;
-        color: white;
+        background: rgba(0, 0, 0, 0.85); /* Deep dark glass */
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        color: rgba(255, 255, 255, 0.95);
         padding: 8px 16px;
-        border-radius: 24px;
+        border-radius: 100px; /* Fully rounded capsule */
         z-index: 60;
-        /* Above Header(50), Below Modal(100) */
         display: flex; align-items: center; justify-content: center;
         gap: 8px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        /* Visual: Subtle rim light for dark object */
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         font-size: 13px; font-weight: 600;
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        letter-spacing: 0.3px;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bouncy spring */
         cursor: pointer;
         user-select: none;
-        touch-action: none; /* Prevent browser zooming/scrolling on the pill */
-        width: 90px; /* Fix: Fixed width to prevent resize jitter */
+        touch-action: none;
+        width: auto;
+        min-width: 90px; /* Flex width */
         box-sizing: border-box;
     }
+    .dynamic-nav-pill:active {
+        transform: translateX(-50%) scale(0.92);
+    }
+
                 .dynamic-nav-pill span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             text-align: center;
     }
@@ -1489,7 +1498,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
     createApp({
       setup() {
         // --- 1. App State & Core Config ---
-        const appVersion = ref('v260208-14.12');
+        const appVersion = ref('v260208-14.13');
         const currentTab = ref('首頁');
         const syncState = ref('loading');
         const isInitialized = ref(false);
