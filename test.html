@@ -1083,10 +1083,21 @@ rounded-full
                  <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('routeHeader') }}</label>
                  <input v-model="editingSettings.route" class="ios-input font-bold" placeholder="HKG ✈️ KIX">
              </div>
-             <div class="grid grid-cols-2 gap-4">
-                 <div><label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('startDate') }}</label><input v-model="editingSettings.startDate" type="date" class="ios-input"></div>
-                 <div><label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('endDate') }}</label><input v-model="editingSettings.endDate" type="date" class="ios-input"></div>
+                          <div class="grid grid-cols-2 gap-4">
+                 <div>
+                     <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('startDate') }}</label>
+                     <div @click="openDatePicker" class="ios-input flex items-center justify-center font-bold text-blue-600 cursor-pointer active:bg-gray-200/50 transition-colors" style="height: 44px;">
+                         {{ editingSettings.startDate || '-' }}
+                     </div>
+                 </div>
+                 <div>
+                     <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('endDate') }}</label>
+                     <div @click="openDatePicker" class="ios-input flex items-center justify-center font-bold text-blue-600 cursor-pointer active:bg-gray-200/50 transition-colors" style="height: 44px;">
+                         {{ editingSettings.endDate || '-' }}
+                     </div>
+                 </div>
              </div>
+
              <div class="grid grid-cols-2 gap-4">
                  <div><label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('localCurr') }}</label><input v-model="editingSettings.localCurrency" class="ios-input font-mono uppercase" placeholder="TWD"></div>
                  <div><label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('homeCurr') }}</label><input v-model="editingSettings.homeCurrency" class="ios-input font-mono uppercase" placeholder="HKD"></div>
