@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync Dev14.05</title>
+  <title>Travel Sync Dev14.03</title>
 
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#F2F2F7">
@@ -18,28 +18,19 @@
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
   <style>
-            :root {
+        :root {
       --ios-bg: #F2F2F7;
-      /* Visual: 提升通透度與色彩飽和度，模擬 iOS 18 玻璃感 */
-      --ios-card-bg: rgba(255, 255, 255, 0.60);
-      --ios-card-border: rgba(255, 255, 255, 0.4);
+      /* iOS 26 Style: 降低白底濃度，讓背景透出來 */
+      --ios-card-bg: rgba(255, 255, 255, 0.55);
+      /* 增強邊框亮度，製造切割玻璃感 */
+      --ios-card-border: rgba(255, 255, 255, 0.65);
       --ios-primary: #007AFF;
-      --glass-blur: blur(50px) saturate(180%);
-      --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+      /* 關鍵：加入 saturate(180%) 讓透視的顏色更鮮豔，增加模糊度 */
+      --glass-blur: blur(40px) saturate(180%);
       --hkg-navy: #353E53;
       --hkg-yellow: #E9EB4F;
       --hkg-red: #BF443B;
       --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
-
-    /* 統一物理觸感回饋：縮放與透明度變化 */
-    .active-press {
-      transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease;
-      cursor: pointer;
-    }
-    .active-press:active {
-      transform: scale(0.96);
-      opacity: 0.8;
     }
 
     body {
@@ -87,16 +78,16 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     
-        .ios-card {
+    .ios-card {
       background: var(--ios-card-bg);
       backdrop-filter: var(--glass-blur);
       -webkit-backdrop-filter: var(--glass-blur);
-      /* Visual: 更細緻的邊框光暈，移除過重的內陰影，改用柔和擴散陰影 */
-      border: 1px solid rgba(255, 255, 255, 0.4);
-      border-radius: 28px;
-      box-shadow: var(--glass-shadow), inset 0 0 0 0.5px rgba(255, 255, 255, 0.5);
+      /* 複合邊框：外邊框 + 內部微光，增加立體感 */
+      border: 1px solid var(--ios-card-border); border-radius: 24px;
+      box-shadow: 
+        0 8px 32px 0 rgba(31, 38, 135, 0.07),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.3);
       overflow: hidden;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
         /* List Item Styles */
@@ -115,11 +106,7 @@
       border: 1px solid rgba(255,255,255,0.5);
       touch-action: manipulation;
     }
-        .ios-list-item:active { 
-        background: rgba(255, 255, 255, 0.8); 
-        transform: scale(0.97);
-        border-color: rgba(255, 255, 255, 0.8);
-    }
+    .ios-list-item:active { background: rgba(255, 255, 255, 0.95); transform: scale(0.98); }
     .task-done { text-decoration: line-through; color: #8E8E93; opacity: 0.7; }
 
     /* Action Buttons */
@@ -144,16 +131,18 @@
       background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(5px);
       z-index: 100; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px;
     }
-        .ios-modal-container {
-      background: rgba(250, 250, 255, 0.85); /* Slightly more opaque for legibility */
-      backdrop-filter: blur(50px) saturate(180%);
-      -webkit-backdrop-filter: blur(50px) saturate(180%);
-      border-radius: 40px; /* Smoother corners */
+    .ios-modal-container {
+      /* 統一使用玻璃變數，保持通透 */
+      background: rgba(255, 255, 255, 0.70);
+      backdrop-filter: blur(50px) saturate(200%);
+      -webkit-backdrop-filter: blur(50px) saturate(200%);
+      border-radius: 36px;
       display: flex; flex-direction: column; max-height: 90vh; width: 100%; max-width: 400px;
-      box-shadow: 0 40px 80px rgba(0,0,0,0.2), inset 0 0 0 1px rgba(255,255,255,0.6);
+      /* 更柔和深邃的陰影 */
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15), inset 0 0 0 1px rgba(255,255,255,0.5);
       border: 1px solid rgba(255,255,255,0.4);
+/* 修復：強制裁切溢出的子元素背景，解決底部直角突出問題 */
       overflow: hidden;
-      transform: translateZ(0); /* Force hardware acceleration */
     }
     .ios-modal-header { padding: 16px; text-align: center; font-weight: 600; font-size: 17px; border-bottom: 0.5px solid rgba(0,0,0,0.1); position: relative;}
     .ios-modal-body { flex: 1; overflow-y: auto; padding: 20px; -webkit-overflow-scrolling: touch; }
@@ -162,21 +151,7 @@
     .ios-modal-footer { padding: 16px 20px; border-top: 0.5px solid rgba(0,0,0,0.1); display: flex; gap: 12px; background: rgba(255,255,255,0.5); }
     
     .btn-ios-cancel { flex: 1; height: 44px; border-radius: 12px; background: rgba(118, 118, 128, 0.12); color: #000; font-weight: 600; }
-        .btn-ios-cancel { 
-        flex: 1; height: 48px; border-radius: 16px; /* Larger hit area & corners */
-        background: rgba(118, 118, 128, 0.12); color: #000; font-weight: 600; 
-        transition: all 0.2s;
-    }
-    .btn-ios-cancel:active { background: rgba(118, 118, 128, 0.2); transform: scale(0.98); }
-
-    .btn-ios-primary { 
-        flex: 1; height: 48px;
-        border-radius: 16px; 
-        background: var(--ios-primary); color: white; font-weight: 600; 
-        box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3);
-        transition: all 0.2s;
-    }
-    .btn-ios-primary:active { transform: scale(0.97); box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2); }
+    .btn-ios-primary { flex: 1; height: 44px; border-radius: 12px; background: var(--ios-primary); color: white; font-weight: 600; box-shadow: 0 0 15px rgba(0, 122, 255, 0.4); }
 
     .iphone-dock {
       background: rgba(255, 255, 255, 0.65);
@@ -327,36 +302,28 @@
         @keyframes icon-bounce { from { transform: translateY(0); } to { transform: translateY(-3px);
 } }
 
-        /* Dynamic Navigation Pill - Dynamic Island Style */
-    .dynamic-nav-pill {
+    /* Dynamic Navigation Pill */
+        .dynamic-nav-pill {
         position: fixed;
         top: calc(env(safe-area-inset-top) + 12px);
         left: 50%;
         transform: translateX(-50%);
-        background: rgba(0, 0, 0, 0.85); /* Deep dark glass */
-        backdrop-filter: blur(20px) saturate(180%);
-        -webkit-backdrop-filter: blur(20px) saturate(180%);
-        color: rgba(255, 255, 255, 0.95);
+        background: #000000;
+        color: white;
         padding: 8px 16px;
-        border-radius: 100px; /* Fully rounded capsule */
+        border-radius: 24px;
         z-index: 60;
+        /* Above Header(50), Below Modal(100) */
         display: flex; align-items: center; justify-content: center;
         gap: 8px;
-        /* Visual: Subtle rim light for dark object */
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.25);
         font-size: 13px; font-weight: 600;
-        letter-spacing: 0.3px;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bouncy spring */
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         cursor: pointer;
         user-select: none;
-        touch-action: none;
-        width: auto;
-        min-width: 90px; /* Flex width */
+        touch-action: none; /* Prevent browser zooming/scrolling on the pill */
+        width: 90px; /* Fix: Fixed width to prevent resize jitter */
         box-sizing: border-box;
-    }
-    .dynamic-nav-pill:active {
-        transform: translateX(-50%) scale(0.92);
     }
                 .dynamic-nav-pill span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             text-align: center;
@@ -405,7 +372,7 @@
         <div class="bg-overlay"></div>
     </div>
 
-            <header @click="scrollToTop" class="cursor-pointer fixed top-0 left-0 right-0 z-50 pt-10 pb-4 px-6 flex justify-between items-end bg-gradient-to-b from-white/30 to-white/5 backdrop-blur-xl shadow-[0_1px_0_0_rgba(255,255,255,0.2)] transition-all duration-300 active-press">
+        <header @click="scrollToTop" class="cursor-pointer fixed top-0 left-0 right-0 z-50 pt-8 pb-3 px-6 flex justify-between items-end bg-white/10 backdrop-blur-xl border-b border-white/10 transition-all duration-300">
 
       <div>
         <div class="text-[10px] font-bold text-gray-500 tracking-wide mb-0.5 font-mono flex items-center gap-2">
@@ -440,10 +407,8 @@
             <div v-if="currentTab === '首頁'" class="space-y-5 animate-fade-in pb-10">
         
         <div class="relative transition-all duration-500 group">
-                     <div class="relative transition-all duration-500 group active-press">
-             <div class="rounded-[32px] overflow-hidden shadow-2xl shadow-blue-900/10 font-sans relative flex flex-col transition-all duration-300 border border-white/20" 
-                  :class="isFlightMinimized ?
- 'min-h-[auto]' : 'min-h-[240px]'">
+             <div class="rounded-[24px] overflow-hidden shadow-xl font-sans relative flex flex-col transition-all duration-300" 
+                  :class="isFlightMinimized ? 'min-h-[auto]' : 'min-h-[240px]'">
                   
                   <div class="hkg-header px-5 py-4 relative transition-all duration-300" :class="{'pb-4': !isFlightMinimized, 'pb-3': isFlightMinimized}">
                      <button @click.stop="isFlightMinimized = !isFlightMinimized" class="absolute top-4 left-4 z-30 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center backdrop-blur-md transition-colors">
@@ -535,8 +500,8 @@
              <p v-else class="text-xs text-blue-900/50 italic">{{ t('noInfo') }}</p>
         </section>
 
-                <div class="grid grid-cols-2 gap-4">
-                        <div class="ios-card p-4 relative overflow-hidden group active-press">
+        <div class="grid grid-cols-2 gap-4">
+                        <div class="ios-card p-4 relative overflow-hidden group">
                <div class="absolute inset-0 z-0" @mousedown="captureQuickEstFocus" @touchstart="captureQuickEstFocus" @click="clearQuickEstOnRateCardBg" aria-hidden="true"></div>
                <div class="relative z-10 flex justify-between items-start mb-2">
                    <div class="flex items-center gap-2">
@@ -588,9 +553,10 @@ rounded-full
                        <div v-if="quickEstAmount !== ''" class="text-right text-xs font-bold text-blue-600 mt-0.5 leading-none">≈ {{ settings.homeCurrency }} {{ quickEstResult }}</div>
                    </div>
            
-        </div>
+    </div>
             </div>
-            <div class="ios-card p-3 relative group overflow-hidden h-full flex flex-col justify-between active-press">
+            
+                       <div class="ios-card p-3 relative group overflow-hidden h-full flex flex-col justify-between">
                 <div class="flex justify-between items-start">
                     <i :class="weatherIconClass" class="text-[3.5rem] leading-none text-gray-800/80 drop-shadow-sm -ml-1 mt-1"></i>
                                                                                 <div class="text-right z-10 ml-2 flex-1 min-w-0" style="container-type: inline-size;">
@@ -1514,7 +1480,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
     createApp({
       setup() {
         // --- 1. App State & Core Config ---
-        const appVersion = ref('v260208-14.05');
+        const appVersion = ref('v260208-14.03');
         const currentTab = ref('首頁');
         const syncState = ref('loading');
         const isInitialized = ref(false);
