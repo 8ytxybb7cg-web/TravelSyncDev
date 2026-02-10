@@ -1464,21 +1464,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
         </div>
     </div>
 
-    <div v-if="adminEditOpen" class="modal-backdrop">
-        <div class="ios-modal-container" style="max-width: 320px;">
-            <div class="ios-modal-header">Active Trip ID</div>
-            <div class="ios-modal-body space-y-3">
-                <div class="text-xs text-gray-400 text-center px-4">Modifying this will change the data source for ALL users immediately.</div>
-                <input v-model="newTripIdInput" class="ios-input font-mono text-center font-bold" placeholder="trip_id">
-            </div>
-            <div class="ios-modal-footer">
-                <button @click="adminEditOpen=false" class="btn-ios-cancel">{{ t('cancel') }}</button>
-                <button @click="saveActiveTripId" class="btn-ios-primary">{{ t('save') }}</button>
-            </div>
-        </div>
-    </div>
-
-    <div v-if="adminEditOpen" class="modal-backdrop">
+        <div v-if="adminEditOpen" class="modal-backdrop">
         <div class="ios-modal-container" style="max-width: 320px;">
             <div class="ios-modal-header">Active Trip ID</div>
             <div class="ios-modal-body space-y-3">
@@ -2017,9 +2003,118 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             cycle();
         }
 
-        function stopPillLoop() { if(pillLoopTimer) clearTimeout(pillLoopTimer); }
+                function stopPillLoop() { if(pillLoopTimer) clearTimeout(pillLoopTimer);
+        }
 
         watch(() => settings.navAddress, startPillLoop);
+
+        // --- 7.1 Feature: Custom Date Range Picker ---
+        const datePickerModalOpen = ref(false);
+        const calendarViewDate = ref(new Date());
+        const tempRange = reactive({ start: null, end: null });
+
+        const weekDays = computed(() => lang.value === 'zh' ? ['日','一','二','三','四','五','六'] : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']);
+        
+        const calendarHeader = computed(() => {
+            const y = calendarViewDate.value.getFullYear();
+            const m = calendarViewDate.value.getMonth();
+            const monthNames = lang.value === 'zh' 
+                ? ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
+                : ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            return `${monthNames[m]} ${y}`;
+        });
+
+        const calendarPadStart = computed(() => {
+            const y = calendarViewDate.value.getFullYear();
+            const m = calendarViewDate.value.getMonth();
+            return new Date(y, m, 1).getDay();
+        });
+
+        const calendarDays = computed(() => {
+            const y = calendarViewDate.value.getFullYear();
+            const m = calendarViewDate.value.getMonth();
+            const daysInMonth = new Date(y, m + 1, 0).getDate();
+            const list = [];
+            
+            // Normalize times to midnight for comparison
+            const startTs = tempRange.start ? new Date(tempRange.start).setHours(0,0,0,0) : null;
+            const endTs = tempRange.end ? new Date(tempRange.end).setHours(0,0,0,0) : null;
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const current = new Date(y, m, d);
+                const currentTs = current.setHours(0,0,0,0);
+                // Simple past check (optional: allow editing past trips)
+                // const isPast = currentTs < new Date().setHours(0,0,0,0); 
+                
+                list.push({
+                    day: d,
+                    ts: currentTs,
+                    dateStr: `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`,
+                    isStart: startTs === currentTs,
+                    isEnd: endTs === currentTs,
+                    inRange: startTs && endTs && currentTs > startTs && currentTs < endTs,
+                    isPast: false 
+                });
+            }
+            return list;
+        });
+
+        function openDatePicker() {
+            // Initialize with current settings or today
+            if (editingSettings.startDate) {
+                calendarViewDate.value = new Date(editingSettings.startDate);
+                tempRange.start = editingSettings.startDate;
+                tempRange.end = editingSettings.endDate;
+            } else {
+                calendarViewDate.value = new Date();
+                tempRange.start = null;
+                tempRange.end = null;
+            }
+            datePickerModalOpen.value = true;
+        }
+
+        function changeMonth(delta) {
+            const d = new Date(calendarViewDate.value);
+            d.setMonth(d.getMonth() + delta);
+            calendarViewDate.value = d;
+        }
+
+        function selectCalendarDate(dateObj) {
+            if (dateObj.isPast) return;
+            
+            // Logic: 
+            // 1. If nothing selected, set Start.
+            // 2. If Start selected but no End, set End. Swap if needed.
+            // 3. If both selected, clear and set new Start.
+            
+            if (!tempRange.start && !tempRange.end) {
+                tempRange.start = dateObj.dateStr;
+            } else if (tempRange.start && !tempRange.end) {
+                if (dateObj.dateStr === tempRange.start) {
+                    // Clicked same day -> Single day trip (Start == End)
+                    tempRange.end = dateObj.dateStr;
+                } else if (dateObj.ts < new Date(tempRange.start).getTime()) {
+                    // Clicked earlier -> Swap
+                    tempRange.end = tempRange.start;
+                    tempRange.start = dateObj.dateStr;
+                } else {
+                    // Clicked later -> Normal range
+                    tempRange.end = dateObj.dateStr;
+                }
+            } else {
+                // Reset interaction
+                tempRange.start = dateObj.dateStr;
+                tempRange.end = null;
+            }
+        }
+
+        function saveDateRange() {
+            if (tempRange.start && tempRange.end) {
+                editingSettings.startDate = tempRange.start;
+                editingSettings.endDate = tempRange.end;
+                datePickerModalOpen.value = false;
+            }
+        }
 
         // --- 8. Feature: Upload & Image Viewer ---
         const tempImages = ref([]);
@@ -2768,8 +2863,11 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             handleViewerTouchStart, handleViewerTouchMove, handleViewerTouchEnd,
             dayColors, settlementCanvas, activeCategory, handleChartClick, catColors,
                         isAdminLoggedIn, adminLoginOpen, adminEditOpen, adminCreds, attemptAdminLogin, saveActiveTripId, newTripIdInput, goToPrepInput,
-            navPillModalOpen, newNavAddress, navPillLabel, navPillIcon, handlePillDown, handlePillUp, handlePillLeave, saveNavAddress
-        };
+                        navPillModalOpen, newNavAddress, navPillLabel, navPillIcon, handlePillDown, handlePillUp, handlePillLeave, saveNavAddress,
+            // Date Picker Exports
+            datePickerModalOpen, calendarViewDate, tempRange, weekDays, calendarHeader, calendarPadStart, calendarDays, 
+            openDatePicker, changeMonth, selectCalendarDate, saveDateRange
+            };
             }
     }).mount('#app');
 </script>
