@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync Dev14.06</title>
+  <title>Travel Sync Dev14.05</title>
 
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#F2F2F7">
@@ -1580,7 +1580,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
     createApp({
       setup() {
         // --- 1. App State & Core Config ---
-        const appVersion = ref('v260208-14.06');
+        const appVersion = ref('v260208-14.05');
         const currentTab = ref('首頁');
         const syncState = ref('loading');
         const isInitialized = ref(false);
@@ -2865,8 +2865,6 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             dayColors, settlementCanvas, activeCategory, handleChartClick, catColors,
                         isAdminLoggedIn, adminLoginOpen, adminEditOpen, adminCreds, attemptAdminLogin, saveActiveTripId, newTripIdInput, goToPrepInput,
                         navPillModalOpen, newNavAddress, navPillLabel, navPillIcon, handlePillDown, handlePillUp, handlePillLeave, saveNavAddress,
-            titleRef, titleModalOpen, // Export for Header
-
             // Date Picker Exports
             datePickerModalOpen, calendarViewDate, tempRange, weekDays, calendarHeader, calendarPadStart, calendarDays, 
             openDatePicker, changeMonth, selectCalendarDate, saveDateRange
