@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync Dev14.05</title>
+  <title>Travel Sync Dev14.06</title>
 
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#F2F2F7">
@@ -1486,7 +1486,26 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
         </div>
     </div>
 
-    <div v-if="datePickerModalOpen" class="modal-backdrop" @click.self="datePickerModalOpen=false">
+        <div v-if="titleModalOpen" class="modal-backdrop" @click.self="titleModalOpen=false">
+        <div class="ios-modal-container" style="max-width: 320px;">
+            <div class="ios-modal-header">{{ t('tripRoute') }}</div>
+            <div class="ios-modal-body flex items-center justify-center p-6 text-center">
+                <div class="font-bold text-2xl text-slate-800 break-words w-full">
+                     <span v-if="(settings.route || '').startsWith('=')" v-html="(settings.route || '').substring(1)"></span>
+                     <span v-else>{{ settings.route || t('tripRoute') }}</span>
+                </div>
+                <div class="text-xs text-gray-400 font-mono mt-4 border-t border-gray-100 pt-2 w-full">
+                    {{ headerDateRange }}
+                </div>
+            </div>
+            <div class="ios-modal-footer">
+                <button @click="titleModalOpen=false" class="btn-ios-primary">{{ t('done') }}</button>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="datePickerModalOpen"
+ class="modal-backdrop" @click.self="datePickerModalOpen=false">
         <div class="ios-modal-container" style="height: 520px; max-height: 90vh;">
             <div class="ios-modal-header flex justify-between items-center px-4 bg-gray-50/80">
                 <button @click="changeMonth(-1)" class="p-2 text-blue-500 hover:bg-blue-50 rounded-full"><i class="ph-bold ph-caret-left"></i></button>
@@ -1587,7 +1606,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
     createApp({
       setup() {
         // --- 1. App State & Core Config ---
-        const appVersion = ref('v260208-14.05');
+        const appVersion = ref('v260208-14.06');
         const currentTab = ref('首頁');
         const syncState = ref('loading');
         const isInitialized = ref(false);
