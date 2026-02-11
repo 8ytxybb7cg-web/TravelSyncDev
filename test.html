@@ -406,7 +406,7 @@
         <div class="bg-overlay"></div>
     </div>
 
-                <header @click="scrollToTop" class="cursor-pointer fixed top-0 left-0 right-0 z-50 pt-9 pb-4 px-6 flex justify-between items-end bg-gradient-to-b from-white/30 to-white/5 backdrop-blur-xl shadow-[0_1px_0_0_rgba(255,255,255,0.2)] transition-all duration-300 active-press">
+                <header @click="scrollToTop" class="cursor-pointer fixed top-0 left-0 right-0 z-50 pt-10 pb-4 px-6 flex justify-between items-end bg-gradient-to-b from-white/30 to-white/5 backdrop-blur-xl shadow-[0_1px_0_0_rgba(255,255,255,0.2)] transition-all duration-300 active-press">
 
             <div class="flex flex-col justify-end h-full py-1 flex-1 min-w-0 mr-2">
          <div class="flex items-center gap-1.5 mb-0">
@@ -2731,7 +2731,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
         }
         async function saveActiveTripId() {
             if (!newTripIdInput.value) return;
-            const { error } = await supabaseClient.from('app_config').update({ active_trip_id: newTripIdInput.value }).eq('id', 2);
+            const { error } = await supabaseClient.from('app_config').update({ active_trip_id: newTripIdInput.value }).eq('id', 1);
             if (!error) { tripId.value = newTripIdInput.value; location.reload(); } 
             else { alert('Update Failed'); }
         }
@@ -2740,7 +2740,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
         async function initApp() {
             syncState.value = 'loading';
             try {
-                const { data, error } = await supabaseClient.from('app_config').select('active_trip_id').eq('id', 2).single();
+                const { data, error } = await supabaseClient.from('app_config').select('active_trip_id').eq('id', 1).single();
                 if (error || !data?.active_trip_id) throw new Error('Config Error');
                 tripId.value = data.active_trip_id;
                 await fetchCloud();
