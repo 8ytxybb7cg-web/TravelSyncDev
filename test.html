@@ -1611,6 +1611,33 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             return '準備出發～就快得啦';
         });
 
+        // --- 1.5. Header Title Logic (Shrink-to-fit) ---
+        const titleRef = ref(null);
+        const titleModalOpen = ref(false);
+
+        const fitTitle = () => {
+            nextTick(() => {
+                const el = titleRef.value;
+                if (!el) return;
+                
+                // 重置為起始最大字級 (配合行距調整，設定為 26px 以容納三行)
+                let size = 26; 
+                el.style.fontSize = size + 'px';
+                
+                // 遞減字級直到內容放入容器或達到下限 12px
+                // scrollWidth > clientWidth 代表內容溢出
+                while (el.scrollWidth > el.clientWidth && size > 12) {
+                    size--;
+                    el.style.fontSize = size + 'px';
+                }
+            });
+        };
+
+        // 監聽路由變更與視窗縮放
+        watch(() => settings.route, fitTitle, { immediate: true });
+        // 額外掛載 resize listener 以確保轉向或視窗變動時重算
+        onMounted(() => { window.addEventListener('resize', fitTitle); });
+
         // --- 2. Data Models ---
         const settings = reactive({
             route: 'HKG ✈️ KIX', startDate: '2026-03-22', endDate: '2026-03-27',
