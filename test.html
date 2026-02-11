@@ -407,17 +407,25 @@
 
                 <header @click="scrollToTop" class="cursor-pointer fixed top-0 left-0 right-0 z-50 pt-10 pb-4 px-6 flex justify-between items-end bg-gradient-to-b from-white/30 to-white/5 backdrop-blur-xl shadow-[0_1px_0_0_rgba(255,255,255,0.2)] transition-all duration-300 active-press">
 
-      <div class="flex flex-col justify-end">
-         <div class="flex items-center gap-1.5 mb-1">
+            <div class="flex flex-col justify-end h-full py-1">
+         <div class="flex items-center gap-1.5 mb-0">
              <div class="w-2 h-2 rounded-full transition-all duration-300"
                   :class="{'bg-[#34C759]': syncState === 'synced', 'bg-[#FFCC00] animate-pulse': syncState === 'syncing', 'bg-[#FF3B30]': syncState === 'error', 'bg-gray-400': syncState === 'offline'}"></div>
-             <span class="text-xs font-bold text-gray-400 font-mono">{{ syncStatusText }}</span>
+             <span class="text-xs font-bold text-gray-400 font-mono leading-none">{{ syncStatusText }}</span>
          </div>
-         <h1 class="font-bold text-black tracking-tight flex items-baseline gap-2 whitespace-nowrap overflow-hidden text-[clamp(18px,5vw,30px)]">
-           <span v-if="(settings.route || '').startsWith('=')" v-html="(settings.route || '').substring(1)"></span>
-           <span v-else>{{ settings.route || t('tripRoute') }}</span>
-           <span class="font-medium text-gray-500 font-mono tracking-normal text-[0.5em] opacity-80">{{ headerDateRange }}</span>
-        </h1>
+       
+         <div class="w-full overflow-hidden" @click="titleModalOpen = true">
+             <h1 ref="titleRef" 
+                 class="font-bold text-black tracking-tight whitespace-nowrap overflow-hidden w-full leading-tight transition-all duration-100 origin-left"
+                 style="display: block;">
+               <span v-if="(settings.route || '').startsWith('=')" v-html="(settings.route || '').substring(1)"></span>
+               <span v-else>{{ settings.route || t('tripRoute') }}</span>
+             </h1>
+         </div>
+
+         <span class="font-medium text-gray-500 font-mono tracking-normal text-[10px] opacity-80 leading-none mt-0.5 block">
+            {{ headerDateRange }}
+         </span>
       </div>
 
       <div class="flex flex-col items-end gap-0.5 pb-0.5">
@@ -1610,9 +1618,36 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             return '準備出發～就快得啦';
         });
 
+        // --- 1.5. Header Title Logic (Shrink-to-fit) ---
+        const titleRef = ref(null);
+        const titleModalOpen = ref(false);
+
+        const fitTitle = () => {
+            nextTick(() => {
+                const el = titleRef.value;
+                if (!el) return;
+                
+                // 重置為起始最大字級 (配合行距調整，設定為 26px 以容納三行)
+                let size = 26; 
+                el.style.fontSize = size + 'px';
+                
+                // 遞減字級直到內容放入容器或達到下限 12px
+                // scrollWidth > clientWidth 代表內容溢出
+                while (el.scrollWidth > el.clientWidth && size > 12) {
+                    size--;
+                    el.style.fontSize = size + 'px';
+                }
+            });
+        };
+
+        // 監聽路由變更與視窗縮放
+        watch(() => settings.route, fitTitle, { immediate: true });
+        // 額外掛載 resize listener 以確保轉向或視窗變動時重算
+        onMounted(() => { window.addEventListener('resize', fitTitle); });
+
         // --- 2. Data Models ---
         const settings = reactive({
-            route: 'HKG ✈️ KIX', startDate: '2026-03-22', endDate: '2026-03-27',
+            route: 'HKG <i class="ph ph-airplane-tilt"></i> TPE', startDate: '2026-03-22', endDate: '2026-03-27',
                         localCurrency: 'TWD', homeCurrency: 'HKD', weatherLoc: '台北', weatherLocEn: 'Taipei',
             showInfoCard: true, showNavPill: true, navAddress: ''
         });
@@ -2862,8 +2897,9 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             tempImages, handleMultiFileUpload, removeTempImage, closeImageViewer,
             handleViewerTouchStart, handleViewerTouchMove, handleViewerTouchEnd,
             dayColors, settlementCanvas, activeCategory, handleChartClick, catColors,
-                        isAdminLoggedIn, adminLoginOpen, adminEditOpen, adminCreds, attemptAdminLogin, saveActiveTripId, newTripIdInput, goToPrepInput,
-                        navPillModalOpen, newNavAddress, navPillLabel, navPillIcon, handlePillDown, handlePillUp, handlePillLeave, saveNavAddress,
+            isAdminLoggedIn, adminLoginOpen, adminEditOpen, adminCreds, attemptAdminLogin, saveActiveTripId, newTripIdInput, goToPrepInput,
+            navPillModalOpen, newNavAddress, navPillLabel, navPillIcon, handlePillDown, handlePillUp, handlePillLeave, saveNavAddress,
+            titleRef, titleModalOpen, // Export for Header
             // Date Picker Exports
             datePickerModalOpen, calendarViewDate, tempRange, weekDays, calendarHeader, calendarPadStart, calendarDays, 
             openDatePicker, changeMonth, selectCalendarDate, saveDateRange
