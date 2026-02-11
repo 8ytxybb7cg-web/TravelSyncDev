@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync Dev14.52</title>
+  <title>Travel Sync Dev14.53</title>
 
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#F2F2F7">
@@ -408,17 +408,25 @@
 
                 <header @click="scrollToTop" class="cursor-pointer fixed top-0 left-0 right-0 z-50 pt-10 pb-4 px-6 flex justify-between items-end bg-gradient-to-b from-white/30 to-white/5 backdrop-blur-xl shadow-[0_1px_0_0_rgba(255,255,255,0.2)] transition-all duration-300 active-press">
 
-      <div class="flex flex-col justify-end">
-         <div class="flex items-center gap-1.5 mb-1">
+            <div class="flex flex-col justify-end h-full py-1">
+         <div class="flex items-center gap-1.5 mb-0">
              <div class="w-2 h-2 rounded-full transition-all duration-300"
                   :class="{'bg-[#34C759]': syncState === 'synced', 'bg-[#FFCC00] animate-pulse': syncState === 'syncing', 'bg-[#FF3B30]': syncState === 'error', 'bg-gray-400': syncState === 'offline'}"></div>
-             <span class="text-xs font-bold text-gray-400 font-mono">{{ syncStatusText }}</span>
+             <span class="text-xs font-bold text-gray-400 font-mono leading-none">{{ syncStatusText }}</span>
          </div>
-         <h1 class="font-bold text-black tracking-tight flex items-baseline gap-2 whitespace-nowrap overflow-hidden text-[clamp(18px,5vw,30px)]">
-           <span v-if="(settings.route || '').startsWith('=')" v-html="(settings.route || '').substring(1)"></span>
-           <span v-else>{{ settings.route || t('tripRoute') }}</span>
-           <span class="font-medium text-gray-500 font-mono tracking-normal text-[0.5em] opacity-80">{{ headerDateRange }}</span>
-        </h1>
+       
+         <div class="w-full overflow-hidden" @click="titleModalOpen = true">
+             <h1 ref="titleRef" 
+                 class="font-bold text-black tracking-tight whitespace-nowrap overflow-hidden w-full leading-tight transition-all duration-100 origin-left"
+                 style="display: block;">
+               <span v-if="(settings.route || '').startsWith('=')" v-html="(settings.route || '').substring(1)"></span>
+               <span v-else>{{ settings.route || t('tripRoute') }}</span>
+             </h1>
+         </div>
+
+         <span class="font-medium text-gray-500 font-mono tracking-normal text-[10px] opacity-80 leading-none mt-0.5 block">
+            {{ headerDateRange }}
+         </span>
       </div>
 
       <div class="flex flex-col items-end gap-0.5 pb-0.5">
@@ -1580,7 +1588,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
     createApp({
       setup() {
         // --- 1. App State & Core Config ---
-        const appVersion = ref('v260208-14.52');
+        const appVersion = ref('v260208-14.53');
         const currentTab = ref('首頁');
         const syncState = ref('loading');
         const isInitialized = ref(false);
