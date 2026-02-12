@@ -756,7 +756,7 @@ rounded-full
              </div>
         </div>
       </div>
-            <div v-if="currentTab === '行程'" ref="swipeContainer" :class="bounceClass" class="space-y-4 animate-fade-in pb-20 transition-transform">
+                        <div v-if="currentTab === '行程'" ref="swipeContainer" :class="bounceClass" class="space-y-4 animate-fade-in pb-20 pt-5 transition-transform">
          
          <div class="mb-4">
             <div class="flex justify-between gap-3 overflow-x-auto no-scrollbar py-1 px-1">
@@ -930,7 +930,7 @@ rounded-full
         </transition>
       </div>
 
-      <div v-if="currentTab === '記帳'" class="pb-20 animate-fade-in">
+            <div v-if="currentTab === '記帳'" class="pb-20 animate-fade-in pt-5">
           <div class="ios-card-dark-glass p-6 mb-4 relative">
              <div class="dark-glass-gradient"></div>
              <button @click="openMemberModal" class="absolute top-4 left-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center text-white transition-all z-20"><i class="ph-bold ph-gear text-lg"></i></button>
@@ -1022,7 +1022,7 @@ rounded-full
           </div>
       </div>
 
-                  <div v-if="currentTab === '購物'" class="animate-fade-in pb-24 px-1">
+                                    <div v-if="currentTab === '購物'" class="animate-fade-in pb-24 px-1 pt-5">
           <div class="flex items-center justify-between mb-4 px-2 mt-2">
               <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2"><i class="ph-fill ph-shopping-bag text-pink-500"></i> {{ t('shopping') }}</h2>
           </div>
@@ -1078,8 +1078,7 @@ rounded-full
           <i class="ph-bold ph-plus"></i>
       </button>
 
-                     <div v-if="currentTab === '設定'" class="animate-fade-in pb-24">
-         <div class="ios-card p-5 space-y-6">
+                                          <div v-if="currentTab === '設定'" class="animate-fade-in pb-24 pt-5">
              <div class="flex justify-between items-center mb-4">
                  <h2 class="text-xl font-bold">{{ t('settings') }}</h2>
 <button @click="adminLoginOpen = true" class="text-gray-400 hover:text-gray-600 transition-colors rounded-full p-3 active:bg-gray-200/50 -mr-2">
