@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync Dev14.07</title>
+  <title>Travel Sync Dev14.08</title>
 
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#F2F2F7">
@@ -756,7 +756,7 @@ rounded-full
              </div>
         </div>
       </div>
-            <div v-if="currentTab === '行程'" ref="swipeContainer" :class="bounceClass" class="space-y-4 animate-fade-in pb-20 transition-transform">
+            <div v-if="currentTab === '行程'" ref="swipeContainer" :class="bounceClass" class="space-y-4 animate-fade-in pb-20 transition-transform pt-5">
          
          <div class="mb-4">
             <div class="flex justify-between gap-3 overflow-x-auto no-scrollbar py-1 px-1">
@@ -930,7 +930,7 @@ rounded-full
         </transition>
       </div>
 
-      <div v-if="currentTab === '記帳'" class="pb-20 animate-fade-in">
+      <div v-if="currentTab === '記帳'" class="pb-20 animate-fade-in pt-5">
           <div class="ios-card-dark-glass p-6 mb-4 relative">
              <div class="dark-glass-gradient"></div>
              <button @click="openMemberModal" class="absolute top-4 left-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center text-white transition-all z-20"><i class="ph-bold ph-gear text-lg"></i></button>
@@ -1022,7 +1022,7 @@ rounded-full
           </div>
       </div>
 
-                  <div v-if="currentTab === '購物'" class="animate-fade-in pb-24 px-1">
+                  <div v-if="currentTab === '購物'" class="animate-fade-in pb-24 px-1 pt-5">
           <div class="flex items-center justify-between mb-4 px-2 mt-2">
               <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2"><i class="ph-fill ph-shopping-bag text-pink-500"></i> {{ t('shopping') }}</h2>
           </div>
@@ -1078,7 +1078,7 @@ rounded-full
           <i class="ph-bold ph-plus"></i>
       </button>
 
-                     <div v-if="currentTab === '設定'" class="animate-fade-in pb-24">
+                     <div v-if="currentTab === '設定'" class="animate-fade-in pb-24 pt-5">
          <div class="ios-card p-5 space-y-6">
              <div class="flex justify-between items-center mb-4">
                  <h2 class="text-xl font-bold">{{ t('settings') }}</h2>
@@ -1604,7 +1604,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
     createApp({
       setup() {
         // --- 1. App State & Core Config ---
-        const appVersion = ref('v260208-14.07');
+        const appVersion = ref('v260212-14.08');
         const currentTab = ref('首頁');
         const syncState = ref('loading');
         const isInitialized = ref(false);
