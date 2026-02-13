@@ -886,7 +886,7 @@ rounded-full
                           class="relative group cursor-pointer">
                             <div v-if="idx < sortedItinerary.length - 1 && calculateGap(it.time, sortedItinerary[idx+1].time) >= 240" 
                                   class="flex justify-center -my-2 relative z-20" @click.stop>
-                                <button @click="triggerGapFill(it, sortedItinerary[idx+1])" class="ai-capsule">
+                                <                                <button @click="triggerGapFill(it, sortedItinerary[idx+1])" class="ai-capsule no-line"> >
                                     <i class="ph-fill ph-magic-wand"></i>
                                     <span>空閒 {{ Math.floor(calculateGap(it.time, sortedItinerary[idx+1].time)/60) }} 小時，查看建議</span>
                                 </button>
