@@ -932,7 +932,7 @@ top-1 w-3.5 h-3.5 rounded-full bg-white border-[3px] border-gray-300 group-hover
 
                         <div v-if="idx < sortedItinerary.length - 1 && calculateGap(it.time, sortedItinerary[idx+1].time) >= 240" class="flex justify-center py-2 relative z-20" @click.stop>
                                 <button @click="triggerGapFill(it, sortedItinerary[idx+1])" class="ai-capsule no-line">
-                                    <i class="ph-fill ph-magic-wand"></i>
+                                    <i class="ph-fill ph-magic-wand ai-sparkle"></i>
                                     <span>空閒 {{ Math.floor(calculateGap(it.time, sortedItinerary[idx+1].time)/60) }} 小時，查看建議</span>
                                 </button>
                         </div>
@@ -1051,6 +1051,10 @@ top-1 w-3.5 h-3.5 rounded-full bg-white border-[3px] border-gray-300 group-hover
           </div>
           
           <div v-else id="sortable-expenses" class="space-y-2">
+            <div v-if="filteredExpenses.length === 0" class="py-12 text-center">
+  <i class="ph ph-wallet text-4xl text-gray-300 mb-2"></i>
+  <p class="text-sm text-gray-400">{{ t('noItems') }}</p>
+</div>
                           <div v-for="e in filteredExpenses" :key="e.id" :data-id="e.id" @click="openExpenseModal(e)" 
                   class="bg-white/70 backdrop-blur-xl rounded-2xl p-3 border border-white/60 shadow-sm transition-all active:scale-[0.99] active:bg-white/90 cursor-pointer flex flex-col relative pr-8">
                   
@@ -1133,9 +1137,10 @@ top-1 w-3.5 h-3.5 rounded-full bg-white border-[3px] border-gray-300 group-hover
 
           </div>
           
-                    <div v-if="shoppingList.length === 0" class="py-10 text-center text-sm text-gray-400">
-             <p>{{ t('noItems') }}</p>
-          </div>
+                    <div v-if="shoppingList.length === 0" class="py-12 text-center">
+  <i class="ph ph-shopping-bag text-4xl text-gray-300 mb-2"></i>
+  <p class="text-sm text-gray-400">{{ t('noItems') }}</p>
+</div>
       </div>
 
       <button v-if="currentTab === '購物'" @click="openShoppingModal()" class="floating-add-btn bg-pink-500 fixed bottom-[100px] right-5 z-40">
