@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync v15.02</title>
+  <title>Travel Sync v15.03</title>
 
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#F2F2F7">
@@ -930,7 +930,7 @@ top-1 w-3.5 h-3.5 rounded-full bg-white border-[3px] border-gray-300 group-hover
                             </div>
                         </div>
 
-                        <div v-if="idx < sortedItinerary.length - 1 && calculateGap(it.time, sortedItinerary[idx+1].time) >= 240" class="flex justify-center -my-2 relative z-20" @click.stop>
+                        <div v-if="idx < sortedItinerary.length - 1 && calculateGap(it.time, sortedItinerary[idx+1].time) >= 240" class="flex justify-center py-2 relative z-20" @click.stop>
                                 <button @click="triggerGapFill(it, sortedItinerary[idx+1])" class="ai-capsule no-line">
                                     <i class="ph-fill ph-magic-wand"></i>
                                     <span>空閒 {{ Math.floor(calculateGap(it.time, sortedItinerary[idx+1].time)/60) }} 小時，查看建議</span>
@@ -1707,7 +1707,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
     createApp({
       setup() {
         // --- 1. App State & Core Config ---
-        const appVersion = ref('v260212-15.02');
+        const appVersion = ref('v260212-15.03');
         const currentTab = ref('首頁');
         const syncState = ref('loading');
         const isInitialized = ref(false);
