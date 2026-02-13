@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync Dev15.01</title>
+  <title>Travel Sync v15.02</title>
 
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#F2F2F7">
@@ -881,16 +881,10 @@ rounded-full
 
              <div v-else>
                  <div class="relative pl-4 border-l-2 border-gray-300/50 ml-3 space-y-3 py-2">
-                                                <div v-for="(it, idx) in sortedItinerary" :key="it.id"
-                          @click="showLocationOnMap(it)"
+                                                                                <div v-for="(it, idx) in sortedItinerary" :key="it.id"
+                      @click="showLocationOnMap(it)"
                           class="relative group cursor-pointer">
-                            <div v-if="idx < sortedItinerary.length - 1 && calculateGap(it.time, sortedItinerary[idx+1].time) >= 240" 
-                                  class="flex justify-center -my-2 relative z-20" @click.stop>
-                                <button @click="triggerGapFill(it, sortedItinerary[idx+1])" class="ai-capsule no-line">
-                                    <i class="ph-fill ph-magic-wand"></i>
-                                    <span>空閒 {{ Math.floor(calculateGap(it.time, sortedItinerary[idx+1].time)/60) }} 小時，查看建議</span>
-                                </button>
-                                                    </div>
+                        
                         <div class="absolute -left-[23px]
 top-1 w-3.5 h-3.5 rounded-full bg-white border-[3px] border-gray-300 group-hover:border-[#007AFF] transition-colors z-10 shadow-sm"></div>
                    
@@ -898,41 +892,54 @@ top-1 w-3.5 h-3.5 rounded-full bg-white border-[3px] border-gray-300 group-hover
     active:scale-[0.99] active:bg-white/90 relative pr-16">
                             <div class="flex items-start gap-2">
                                 <div class="flex-1 min-w-0">
-                                    <div class="flex justify-between items-center mb-1">
+              
+                       <div class="flex justify-between items-center mb-1">
         
                                       <div class="flex items-center gap-2">
-                                            <span class="text-xs font-bold text-[#007AFF] font-mono bg-blue-50/80 px-1.5 rounded">{{ it.time ||
-    '--:--' }}</span>
+                         
+                    <span class="text-xs font-bold text-[#007AFF] font-mono bg-blue-50/80 px-1.5 rounded">{{ it.time ||
+ '--:--' }}</span>
                                         </div>
                                     </div>
-                                   
+                       
+             
       <div class="font-bold text-[16px] text-gray-900 leading-snug">{{ it.title }}</div>
                                     <div v-if="it.note" class="text-xs text-gray-500 mt-0.5 leading-relaxed">{{ it.note }}</div>
-                                    <div v-if="(it.address || '').trim() !== ''" class="mt-1 flex items-center gap-1.5 text-[10px] text-gray-400 group-hover:text-[#007AFF] transition-colors">
+                                 
+    <div v-if="(it.address || '').trim() !== ''" class="mt-1 flex items-center gap-1.5 text-[10px] text-gray-400 group-hover:text-[#007AFF] transition-colors">
              
                                 <i class="ph ph-map-pin-line"></i>
-                                        <span class="font-medium">查看地圖</span>
+                                     
+    <span class="font-medium">查看地圖</span>
                                      </div>
      
                                 </div>
-                            </div>
+                      
+       </div>
                             <div class="absolute top-3 right-3 flex items-center gap-1">
                        
               <button @click.stop="openItineraryModal(it)" class="text-gray-400 hover:text-[#007AFF] p-1 transition-colors rounded-full">
-                                    <i class="ph ph-pencil-simple text-lg"></i>
+                 
+                    <i class="ph ph-pencil-simple text-lg"></i>
                                 </button>
                           
            <button @click.stop="removeItineraryItem(it.id)" class="text-gray-400 hover:text-[#FF3B30] p-1 transition-colors rounded-full">
-                                    <i class="ph ph-trash text-lg"></i>
+   
+                                  <i class="ph ph-trash text-lg"></i>
                                 </button>
                             </div>
-     
+                        </div>
+
+                        <div v-if="idx < sortedItinerary.length - 1 && calculateGap(it.time, sortedItinerary[idx+1].time) >= 240" class="flex justify-center -my-2 relative z-20" @click.stop>
+                                <button @click="triggerGapFill(it, sortedItinerary[idx+1])" class="ai-capsule no-line">
+                                    <i class="ph-fill ph-magic-wand"></i>
+                                    <span>空閒 {{ Math.floor(calculateGap(it.time, sortedItinerary[idx+1].time)/60) }} 小時，查看建議</span>
+                                </button>
                         </div>
            </div>
-
                  </div>
                  
-                                                   <div v-if="sortedItinerary.length === 0" class="flex-1 h-full flex flex-col items-center justify-center text-center pb-32">
+                    <div v-if="sortedItinerary.length === 0" class="flex-1 h-full flex flex-col items-center justify-center text-center pb-32">
                     <div v-if="!isAiLoading" class="flex flex-col items-center">
                         <i class="ph ph-coffee text-4xl mb-4 text-gray-300"></i>
                         <p class="text-sm font-bold text-gray-400 mb-6">今日無行程，享受自由</p>
@@ -1700,7 +1707,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
     createApp({
       setup() {
         // --- 1. App State & Core Config ---
-        const appVersion = ref('v260212-15.01');
+        const appVersion = ref('v260212-15.02');
         const currentTab = ref('首頁');
         const syncState = ref('loading');
         const isInitialized = ref(false);
