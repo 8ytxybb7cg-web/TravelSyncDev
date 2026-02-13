@@ -881,7 +881,16 @@ rounded-full
 
              <div v-else>
                  <div class="relative pl-4 border-l-2 border-gray-300/50 ml-3 space-y-3 py-2">
-                        <div v-for="it in sortedItinerary" :key="it.id"
+                                                <div v-for="(it, idx) in sortedItinerary" :key="it.id"
+                          @click="showLocationOnMap(it)"
+                          class="relative group cursor-pointer">
+                            <div v-if="idx < sortedItinerary.length - 1 && calculateGap(it.time, sortedItinerary[idx+1].time) >= 240" 
+                                  class="flex justify-center -my-2 relative z-20" @click.stop>
+                                <button @click="triggerGapFill(it, sortedItinerary[idx+1])" class="ai-capsule">
+                                    <i class="ph-fill ph-magic-wand"></i>
+                                    <span>空閒 {{ Math.floor(calculateGap(it.time, sortedItinerary[idx+1].time)/60) }} 小時，查看建議</span>
+                                </button>
+                            </div>
                           @click="showLocationOnMap(it)"
      
                           class="relative group cursor-pointer">
