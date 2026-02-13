@@ -934,7 +934,20 @@ rounded-full
 
                  </div>
                  
-                 <p v-if="sortedItinerary.length === 0" class="py-12 text-center text-gray-400 text-sm">
+                                  <div v-if="sortedItinerary.length === 0" class="py-12 flex flex-col items-center justify-center text-center">
+                    <div v-if="!isAiLoading">
+                        <i class="ph ph-coffee text-3xl mb-2 block text-gray-300"></i>
+                        <p class="text-sm text-gray-400 mb-4">{{ t('noItems') }}</p>
+                        <button v-if="!hasAiGenerated" @click="triggerColdStart" class="ai-capsule no-line !m-0 !text-[#007AFF] !border-[#007AFF]/30">
+                            <i class="ph-fill ph-sparkle ai-sparkle"></i> AI 智能生成行程
+                        </button>
+                    </div>
+                    <div v-else class="flex flex-col items-center gap-3">
+                        <i class="ph-bold ph-spinner animate-spin text-2xl text-[#007AFF]"></i>
+                        <span class="text-xs font-bold text-[#007AFF] animate-pulse">AI 正在規劃中...</span>
+                    </div>
+                 </div>
+
                     <i class="ph ph-coffee text-3xl mb-2 block text-gray-300"></i>
           
                  今日無行程，享受自由時光
@@ -1522,7 +1535,46 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
         </div>
     </div>
 
-        <div v-if="adminEditOpen" class="modal-backdrop">
+            <transition name="fade">
+        <div v-if="aiModalOpen" class="modal-backdrop" @click.self="aiModalOpen=false">
+            <div class="ios-modal-container" style="max-height: 80vh;">
+                <div class="ios-modal-header border-b-0 pb-0">
+                    <div class="flex flex-col items-center gap-1">
+                        <i class="ph-fill 
+                        ph-sparkle text-[#007AFF] text-2xl ai-sparkle"></i>
+                        <span class="font-bold text-lg text-slate-800">AI 推薦行程</span>
+                    </div>
+                </div>
+                <div class="ios-modal-body space-y-3 p-4">
+                      <div v-if="isAiLoading" class="py-10 text-center flex flex-col items-center gap-3">
+                        <i class="ph-bold ph-spinner animate-spin text-3xl text-[#007AFF]"></i>
+                        <span class="text-xs font-bold text-gray-400">正在搜尋附近好去處...</span>
+                     </div>
+                     <div v-else class="space-y-3">
+                        <div v-for="(sugg, i) in aiSuggestions" :key="i" class="ai-suggestion-card relative group hover:bg-white/50 transition-colors p-4 border border-blue-100/50">
+                            <div class="flex justify-between items-start mb-1">
+                                <span class="text-xs font-mono font-bold text-[#007AFF] bg-blue-50 px-2 py-0.5 rounded">{{ sugg.time }}</span>
+                                <button @click="acceptAiSuggestion(sugg)" class="text-xs font-bold text-white bg-[#007AFF] px-3 py-1 rounded-full shadow-lg shadow-blue-500/30 active:scale-95 transition-transform">
+                                     <i class="ph-bold ph-plus"></i> 加入
+                                </button>
+                            </div>
+                            <h4 class="font-bold text-slate-800 mb-1">{{ 
+                            sugg.title }}</h4>
+                            <p class="text-xs text-gray-500 leading-relaxed">{{ sugg.note }}</p>
+                            <div class="mt-2 flex items-center gap-1 text-[10px] text-gray-400">
+                                <i class="ph-fill ph-map-pin"></i> {{ sugg.address }}
+                            </div>
+                        </div>
+                     </div>
+                </div>
+                 <div class="ios-modal-footer">
+                    <button @click="aiModalOpen=false" class="btn-ios-cancel">關閉</button>
+                </div>
+            </div>
+        </div>
+    </transition>
+
+    <div v-if="adminEditOpen" class="modal-backdrop">
         <div class="ios-modal-container" style="max-width: 320px;">
             <div class="ios-modal-header">Active Trip ID</div>
             <div class="ios-modal-body space-y-3">
