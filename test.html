@@ -886,15 +886,13 @@ rounded-full
                           class="relative group cursor-pointer">
                             <div v-if="idx < sortedItinerary.length - 1 && calculateGap(it.time, sortedItinerary[idx+1].time) >= 240" 
                                   class="flex justify-center -my-2 relative z-20" @click.stop>
-                                <button @click="triggerGapFill(it, sortedItinerary[idx+1])" class="ai-capsule">
+                                <button @click="triggerGapFill(it, sortedItinerary[idx+1])" class="ai-capsule no-line">
                                     <i class="ph-fill ph-magic-wand"></i>
                                     <span>空閒 {{ Math.floor(calculateGap(it.time, sortedItinerary[idx+1].time)/60) }} 小時，查看建議</span>
                                 </button>
-                            </div>
-                          @click="showLocationOnMap(it)"
-     
-                          class="relative group cursor-pointer">
-                        <div class="absolute -left-[23px] top-1 w-3.5 h-3.5 rounded-full bg-white border-[3px] border-gray-300 group-hover:border-[#007AFF] transition-colors z-10 shadow-sm"></div>
+                                                    </div>
+                        <div class="absolute -left-[23px]
+top-1 w-3.5 h-3.5 rounded-full bg-white border-[3px] border-gray-300 group-hover:border-[#007AFF] transition-colors z-10 shadow-sm"></div>
                    
                         <div class="bg-white/70 backdrop-blur-xl rounded-2xl p-3 border border-white/60 shadow-sm transition-all 
     active:scale-[0.99] active:bg-white/90 relative pr-16">
@@ -934,10 +932,10 @@ rounded-full
 
                  </div>
                  
-                                  <div v-if="sortedItinerary.length === 0" class="py-12 flex flex-col items-center justify-center text-center">
-                    <div v-if="!isAiLoading">
-                        <i class="ph ph-coffee text-3xl mb-2 block text-gray-300"></i>
-                        <p class="text-sm text-gray-400 mb-4">{{ t('noItems') }}</p>
+                                                   <div v-if="sortedItinerary.length === 0" class="flex-1 h-full flex flex-col items-center justify-center text-center pb-32">
+                    <div v-if="!isAiLoading" class="flex flex-col items-center">
+                        <i class="ph ph-coffee text-4xl mb-4 text-gray-300"></i>
+                        <p class="text-sm font-bold text-gray-400 mb-6">今日無行程，享受自由</p>
                         <button v-if="!hasAiGenerated" @click="triggerColdStart" class="ai-capsule no-line !m-0 !text-[#007AFF] !border-[#007AFF]/30">
                             <i class="ph-fill ph-sparkle ai-sparkle"></i> AI 智能生成行程
                         </button>
@@ -947,11 +945,6 @@ rounded-full
                         <span class="text-xs font-bold text-[#007AFF] animate-pulse">AI 正在規劃中...</span>
                     </div>
                  </div>
-
-                    <i class="ph ph-coffee text-3xl mb-2 block text-gray-300"></i>
-          
-                 今日無行程，享受自由時光
-                 </p>
              </div>
         </div>
 
