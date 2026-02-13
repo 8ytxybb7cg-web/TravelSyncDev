@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync Dev14.08</title>
+  <title>Travel Sync Dev15.01</title>
 
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#F2F2F7">
@@ -256,7 +256,49 @@
     .floating-add-btn:active, .floating-add-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
     .floating-add-btn i { font-size: 28px; }
 
-    /* Swipe Boundary Bounce Animation */
+        /* Swipe Boundary Bounce Animation */
+    @keyframes bounce-limit-left { 0%, 100% { transform: translateX(0);
+    } 50% { transform: translateX(-30px); } }
+        @keyframes bounce-limit-right { 0%, 100% { transform: translateX(0);
+    } 50% { transform: translateX(30px); } }
+    .bounce-left { animation: bounce-limit-left 0.3s cubic-bezier(0.25, 0.8, 0.5, 1);
+    }
+    .bounce-right { animation: bounce-limit-right 0.3s cubic-bezier(0.25, 0.8, 0.5, 1);
+    }
+
+    /* AI Feature Styles */
+    .ai-capsule {
+      position: relative;
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 16px; margin: 16px auto; width: fit-content;
+      border-radius: 50px;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(12px) saturate(150%);
+      box-shadow: 0 4px 12px rgba(0, 122, 255, 0.15);
+      font-size: 12px; font-weight: 600; color: #007AFF;
+      transition: all 0.2s; z-index: 5;
+    }
+    .ai-capsule:active { transform: scale(0.96); background: rgba(255, 255, 255, 0.6);
+    }
+        .ai-capsule::before {
+        content: '';
+        position: absolute; top: -16px; bottom: -16px; left: 50%; width: 1px;
+        background: linear-gradient(to bottom, transparent, rgba(0, 122, 255, 0.3), transparent);
+        border-left: 1px dashed rgba(0, 122, 255, 0.4); z-index: -1;
+    }
+    .ai-capsule.no-line::before { display: none;
+    }
+
+    .ai-suggestion-card {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.6); box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        border-radius: 24px; padding: 20px;
+    }
+    .ai-sparkle { animation: sparkle 2s infinite;
+    }
+    @keyframes sparkle { 0%, 100% { opacity: 0.5; transform: scale(1); } 50% { opacity: 1;
+    transform: scale(1.2); } }
     @keyframes bounce-limit-left { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-30px); } }
         @keyframes bounce-limit-right { 0%, 100% { transform: translateX(0);
 } 50% { transform: translateX(30px); } }
@@ -1604,7 +1646,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
     createApp({
       setup() {
         // --- 1. App State & Core Config ---
-        const appVersion = ref('v260212-14.08');
+        const appVersion = ref('v260212-15.01');
         const currentTab = ref('首頁');
         const syncState = ref('loading');
         const isInitialized = ref(false);
