@@ -1677,6 +1677,122 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             return '準備出發～就快得啦';
         });
 
+                // --- AI Feature Logic ---
+        const aiModalOpen = ref(false);
+        const isAiLoading = ref(false);
+        const aiSuggestions = ref([]);
+        const hasAiGenerated = ref(false);
+        // Flag to prevent duplicate cold start
+
+        // Gap Calculation
+        const calculateGap = (t1, t2) => {
+            if(!t1 || !t2) return 0;
+            const toMins = (s) => { const [h,m]=s.split(':').map(Number); return h*60+m; };
+            return toMins(t2) - toMins(t1);
+        };
+        // Edge Function Callers (PWA Fix: Added Headers to prevent caching)
+        const callEdgeFunction = async (funcName, body) => {
+            const { data, error } = await supabaseClient.functions.invoke(funcName, { 
+                body,
+                headers: { 'Cache-Control': 'no-store', 'Pragma': 'no-cache' } 
+            });
+            if (error) throw error;
+            return data;
+        };
+
+        // 1. Cold Start Logic
+        const triggerColdStart = async () => {
+            if(!tripId.value) return;
+            isAiLoading.value = true;
+            try {
+                // Determine destination from settings or first flight
+                const dest = settings.weatherLoc ||
+                (flights.outbound ? flights.outbound.toCode : 'Japan');
+                const result = await callEdgeFunction('generate-itinerary', { 
+                    destination: dest, 
+                    days: 3 // Default as per requirement
+                });
+                if (Array.isArray(result)) {
+                    // Cold start fills the first few days
+                    result.forEach(item => {
+                         // Default logic from previous turn: handleAddAiSuggestion (inline simplified)
+                         const dayIdx = item.dayIndex || 0;
+                         if(dayIdx < itinerary.length) {
+                             handleAddAiSuggestion(item, dayIdx, itinerary);
+                         }
+                    });
+                    hasAiGenerated.value = true;
+                    saveAll();
+                    showToast('行程已自動生成！');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('AI 生成失敗，請稍後再試');
+            } finally {
+                isAiLoading.value = false;
+            }
+        };
+
+        // 2. Gap Filling Logic
+        const triggerGapFill = async (prevItem, nextItem) => {
+            isAiLoading.value = true;
+            aiSuggestions.value = [];
+            aiModalOpen.value = true;
+            try {
+                const dest = settings.weatherLoc ||
+                'Local';
+                const suggestions = await callEdgeFunction('suggest-gap-fill', {
+                    destination: dest,
+                    startTime: prevItem.time,
+                    endTime: nextItem.time,
+                    context: {
+                        previous: prevItem.title,
+                        next: nextItem.title,
+                        address: prevItem.address
+                    }
+                });
+                if(Array.isArray(suggestions)) {
+                    aiSuggestions.value = suggestions;
+                }
+            } catch (e) {
+                 showToast('無法取得建議');
+                 aiModalOpen.value = false;
+            } finally {
+                isAiLoading.value = false;
+            }
+        };
+
+        // 3. Insert Payload Handler
+        const handleAddAiSuggestion = (suggestion, dayIdx, currentItinerary) => {
+             const sanitizeTime = (timeStr) => {
+                if(!timeStr) return "12:00";
+                const [hrs, mins] = timeStr.split(':');
+                return `${hrs.padStart(2, '0')}:${mins.padStart(2, '0')}`;
+             };
+             const newEntry = {
+                ...suggestion,
+                id: `${Date.now()}${Math.random().toString(36).substring(2, 9)}`,
+                time: sanitizeTime(suggestion.time),
+                dayIndex: dayIdx,
+                colorClass: "border-blue-400", // Default AI color
+                is_ai_generated: true
+             };
+             if (!currentItinerary[dayIdx]) currentItinerary[dayIdx] = [];
+             currentItinerary[dayIdx].push(newEntry);
+             currentItinerary[dayIdx].sort((a, b) => (a.time||'').localeCompare(b.time||''));
+        };
+        const acceptAiSuggestion = (sugg) => {
+            // Suggestion card doesn't have dayIndex, use current selectedDay
+            const dIdx = typeof selectedDay.value === 'number' ?
+            selectedDay.value : 0;
+            handleAddAiSuggestion(sugg, dIdx, itinerary);
+            saveAll();
+            showToast('已加入行程');
+            // Remove from list to avoid double add
+            aiSuggestions.value = aiSuggestions.value.filter(x => x !== sugg);
+            if(aiSuggestions.value.length === 0) aiModalOpen.value = false;
+        };
+
         // --- 2. Data Models ---
         const settings = reactive({
             route: 'HKG ✈️ TPE', startDate: '2026-03-22', endDate: '2026-03-27',
