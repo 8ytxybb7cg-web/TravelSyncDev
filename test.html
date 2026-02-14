@@ -416,9 +416,7 @@
 
 <body>
   <div id="app">
-    <div v-if="introAppReady && !userSession" 
-     class="fixed inset-0 z-[99999] bg-[#F2F2F7] flex flex-col items-center justify-center p-6 animate-fade-in"
-     style="animation-duration: 0.8s;">
+    <div v-if="introAppReady && !userSession" class="fixed inset-0 z-[99999] bg-[#F2F2F7] flex flex-col items-center justify-center p-6 animate-fade-in">
         <div class="ios-card p-8 flex flex-col items-center gap-6 max-w-sm w-full bg-white/80 backdrop-blur-xl shadow-2xl">
             <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg text-white mb-2">
                 <i class="ph-fill ph-airplane-tilt text-3xl"></i>
@@ -2985,16 +2983,14 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
 
             // Listen for changes (OAuth redirect, logout)
             supabaseClient.auth.onAuthStateChange((_event, session) => {
-    // 稍微延遲讓 UI 狀態轉換更平滑
-    setTimeout(() => {
-        userSession.value = session;
-        if (session) {
-            fetchUserWorkspace();
-        } else {
-            isInitialized.value = false;
-        }
-    }, 300); 
-});
+                userSession.value = session;
+                if (session) {
+                    fetchUserWorkspace();
+                } else {
+                    isInitialized.value = false;
+                }
+            });
+        };
 
         // 2. Fetch or Create User Workspace
         async function fetchUserWorkspace() {
