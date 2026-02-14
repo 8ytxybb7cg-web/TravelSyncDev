@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync Dev16.03</title>
+  <title>Travel Sync v15.03</title>
 
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#F2F2F7">
@@ -416,33 +416,6 @@
 
 <body>
   <div id="app">
-        <div v-if="introAppReady && !userSession" 
-         class="fixed inset-0 z-[100000] bg-[#F2F2F7] flex flex-col items-center justify-center p-6 animate-fade-in"
-         style="animation-duration: 0.5s;">
-
-        <div class="ios-card p-8 flex flex-col items-center gap-6 max-w-sm w-full bg-white/80 backdrop-blur-xl shadow-2xl">
-            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg text-white mb-2">
-                <i class="ph-fill ph-airplane-tilt text-3xl"></i>
-            </div>
-            <div class="text-center">
-                <h2 class="text-2xl font-bold text-slate-800 mb-2">Travel Sync</h2>
-                <p class="text-sm text-gray-500 font-medium leading-relaxed">請登入以存取您的個人行程<br>Sign in to access your workspace</p>
-            </div>
-            
-            <button @click="handleLogin('google')" class="w-full py-3.5 bg-white border border-gray-200 rounded-xl font-bold text-slate-700 flex items-center justify-center gap-3 shadow-sm active:scale-95 transition-all hover:bg-gray-50">
-                <i class="ph-bold ph-google-logo text-lg text-red-500"></i>
-                Continue with Google
-            </button>
-            
-            <button @click="handleLogin('apple')" class="w-full py-3.5 bg-black text-white rounded-xl font-bold flex items-center justify-center gap-3 shadow-lg shadow-black/20 active:scale-95 transition-all">
-                <i class="ph-fill ph-apple-logo text-xl"></i>
-                Continue with Apple
-            </button>
-            
-            <div class="text-[10px] text-gray-400 font-mono mt-4"><span class="text-[10px] text-gray-400 font-mono mt-4">Travel Sync {{ appVersion }}</span></div>
-        </div>
-    </div>
-
     <div v-if="introVisible" class="intro-layer" :class="{ 'fade-out': introFading }">
         <div class="sketch-box">
             <div class="sketch-text">
@@ -471,7 +444,7 @@
     </div>
 
     <div class="bg-fixed-layer">
-        <img src="./IMG_1641.jpeg" alt="Background">
+        <img src="./IMG_7502.jpeg" alt="Background">
         <div class="bg-overlay"></div>
     </div>
                 <header @click="scrollToTop" class="cursor-pointer fixed top-0 left-0 right-0 z-50 pt-10 pb-4 px-6 flex justify-between items-end bg-gradient-to-b from-white/30 to-white/5 backdrop-blur-xl shadow-[0_1px_0_0_rgba(255,255,255,0.2)] transition-all duration-300 active-press">
@@ -1178,14 +1151,7 @@ top-1 w-3.5 h-3.5 rounded-full bg-white border-[3px] border-gray-300 group-hover
          <div class="ios-card p-5 space-y-6">
              <div class="flex justify-between items-center mb-4">
                  <h2 class="text-xl font-bold">{{ t('settings') }}</h2>
-<div class="flex items-center gap-2">
-    <span v-if="userSession" class="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded-full truncate max-w-[100px]">
-        {{ userSession.user.email }}
-    </span>
-    <button @click="handleLogout" class="text-red-500 hover:text-red-600 transition-colors text-xs font-bold px-2">
-        {{ lang === 'zh' ? '登出' : 'Logout' }} </button>
-</div>
-
+<button @click="adminLoginOpen = true" class="text-gray-400 hover:text-gray-600 transition-colors rounded-full p-3 active:bg-gray-200/50 -mr-2">
     <i class="ph-fill ph-user-circle text-4xl"></i>
 </button>
              </div>
@@ -1546,6 +1512,20 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
         </div>
     </div>
 
+            <div v-if="adminLoginOpen" class="modal-backdrop" @click.self="adminLoginOpen=false">
+        <div class="ios-modal-container" style="max-width: 320px;">
+            <div class="ios-modal-header">Admin Login</div>
+            <div class="ios-modal-body space-y-3">
+                <input v-model="adminCreds.u" class="ios-input" placeholder="Username" autocapitalize="off">
+                <input v-model="adminCreds.p" type="password" class="ios-input" placeholder="Password">
+            </div>
+            <div class="ios-modal-footer">
+                <button @click="adminLoginOpen=false" class="btn-ios-cancel">{{ t('cancel') }}</button>
+                <button @click="attemptAdminLogin" class="btn-ios-primary">Login</button>
+            </div>
+        </div>
+    </div>
+
         <div v-if="navPillModalOpen" class="modal-backdrop" @click.self="navPillModalOpen=false">
         <div class="ios-modal-container" style="max-width: 320px;">
             <div class="ios-modal-header">{{ t('setDest') }}</div>
@@ -1732,16 +1712,20 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
     createApp({
       setup() {
         // --- 1. App State & Core Config ---
-        const appVersion = ref('v260213-16.03');
+        const appVersion = ref('v260213-15.03');
         const currentTab = ref('首頁');
         const syncState = ref('loading');
         const isInitialized = ref(false);
         const notification = ref(null);
-                const lang = ref(localStorage.getItem('app_lang') || 'zh');
+        const lang = ref(localStorage.getItem('app_lang') || 'zh');
         
-        // Auth & User State
-        const userSession = ref(null);
-
+        // Admin State
+        const tripId = ref(null);
+        const isAdminLoggedIn = ref(false);
+        const adminLoginOpen = ref(false);
+        const adminEditOpen = ref(false);
+        const adminCreds = reactive({ u: '', p: '' });
+        const newTripIdInput = ref('');
 
         // Intro Loading State
         const introVisible = ref(true);
@@ -2959,89 +2943,48 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             saveAll(); showToast("Settings Saved!");
         }
 
-                // --- Auth & Data Logic ---
+        // Admin Logic
+        function attemptAdminLogin() {
+            if (adminCreds.u === 'admin' && adminCreds.p === '1234') {
+                isAdminLoggedIn.value = true; adminLoginOpen.value = false;
+                newTripIdInput.value = tripId.value; adminEditOpen.value = true;
+                adminCreds.u = ''; adminCreds.p = '';
+            } else { alert('Access Denied'); }
+        }
+                async function saveActiveTripId() {
+            if (!newTripIdInput.value) return;
+            const { error } = await supabaseClient.from('app_config').update({ active_trip_id: newTripIdInput.value }).eq('id', 1);
+            if (!error) { 
+                tripId.value = newTripIdInput.value; 
+                adminEditOpen.value = false;
+                showToast('Trip ID Updated');
+            } 
+            else { alert('Update Failed');
+            }
+        }
 
-        const handleLogin = async (provider) => {
-            const { error } = await supabaseClient.auth.signInWithOAuth({
-                provider: provider,
-                options: { redirectTo: window.location.origin }
-            });
-            if (error) showToast('Login failed: ' + error.message);
-        };
-
-                const handleLogout = async () => {
-            await supabaseClient.auth.signOut();
-            userSession.value = null;
-            isInitialized.value = false; // 強制重置初始化狀態
-            // Clear local data visually
-            Object.assign(settings, { route: {{ lang === 'zh' ? '請登入' : 'Login Required' }} });
-            itinerary.splice(0, itinerary.length);
-            showToast('已安全登出');
-        };
-
-        // 1. Initialize Auth Listener
-        const setupAuth = () => {
-            // Check initial session
-            supabaseClient.auth.getSession().then(({ data: { session } }) => {
-                userSession.value = session;
-                if (session) fetchUserWorkspace();
-            });
-
-            // Listen for changes (OAuth redirect, logout)
-            supabaseClient.auth.onAuthStateChange((_event, session) => {
-                userSession.value = session;
-                if (session) {
-                    fetchUserWorkspace();
-                } else {
-                    isInitialized.value = false;
-                }
-            });
-        };
-
-        // 2. Fetch or Create User Workspace
-        async function fetchUserWorkspace() {
+        // --- 12. Persistence & Init ---
+        async function initApp() {
             syncState.value = 'loading';
             try {
-                const uid = userSession.value.user.id;
-                
-                // Fetch User's Single Row
-                let { data, error } = await supabaseClient
-                    .from('trip_data')
-                    .select('data')
-                    .eq('user_id', uid)
-                    .single();
+                const { data, error } = await supabaseClient.from('app_config').select('active_trip_id').eq('id', 1).single();
+                if (error || !data?.active_trip_id) throw new Error('Config Error');
+                tripId.value = data.active_trip_id;
+                await fetchCloud();
+            } catch (e) {
+                console.error(e);
+                syncState.value = 'error'; 
+            }
+        }
 
-                if (error && error.code === 'PGRST116') {
-                    // Row not found -> Auto-Provisioning (Create new workspace)
-                    const initialData = {
-                        settings: { ...settings, route: 'New Trip' },
-                        itinerary: [[], [], []], // Default 3 days
-                        created_at: new Date()
-                    };
-                    
-                    const { error: insertError } = await supabaseClient
-                        .from('trip_data')
-                        .insert([{ user_id: uid, data: initialData }]);
-                        
-                    if (insertError) throw insertError;
-                    
-                    // Use initial data
-                    data = { data: initialData };
-                } else if (error) {
-                    throw error;
-                }
-
-                // Load Data
-                if (data?.data) {
-                    const c = data.data;
+        async function fetchCloud() {
+            if (!tripId.value) return;
+            try {
+                const { data } = await supabaseClient.from('trip_data').select('content').eq('id', tripId.value).single();
+                if(data?.content) {
+                    const c = data.content;
                     if(c.settings) { Object.assign(settings, c.settings); Object.assign(editingSettings, settings); }
-                    
-                    // Reset itinerary array to match stored length
-                    if(c.itinerary) {
-                        itinerary.splice(0, itinerary.length);
-                        c.itinerary.forEach(d => itinerary.push(d || []));
-                    }
-                    
+                    if(c.itinerary) c.itinerary.forEach((d,i) => itinerary[i] = d || []);
                     if(c.preTripNotes) preTripNotes.value = c.preTripNotes;
                     if(c.shoppingList) shoppingList.value = c.shoppingList;
                     if(c.expenses) expenses.value = c.expenses;
@@ -3050,48 +2993,16 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
                     else if(c.flight) Object.assign(flights.outbound, c.flight);
                     if(c.members) members.value = c.members;
                 }
-                
-                syncState.value = 'synced';
-                isInitialized.value = true;
-                
-            } catch (e) {
-                console.error('Workspace Load Error:', e);
-                syncState.value = 'error';
-                showToast('無法載入行程資料');
-            }
+                syncState.value = 'synced'; isInitialized.value = true;
+            } catch { syncState.value = 'error'; }
         }
-
-        // 3. Save Logic (Per User)
+        
         async function saveAll() {
-            if (!userSession.value) return; // Login Gate
-            
+            if(!isInitialized.value || !tripId.value) return;
             syncState.value = 'saving';
-            
-            const payload = { 
-                settings, 
-                itinerary, 
-                preTripNotes: preTripNotes.value, 
-                shoppingList: shoppingList.value, 
-                expenses: expenses.value, 
-                infoList: infoList.value, 
-                flights, 
-                members: members.value,
-                last_modified_by: 'web_client'
-            };
-
-            try {
-                const { error } = await supabaseClient
-                    .from('trip_data')
-                    .update({ data: payload }) // updated_at handled by SQL trigger
-                    .eq('user_id', userSession.value.user.id);
-
-                if (error) throw error;
-                
-                setTimeout(() => syncState.value = 'synced', 800);
-            } catch (e) {
-                console.error('Save Error:', e);
-                syncState.value = 'error';
-            }
+            const payload = { settings, itinerary, preTripNotes: preTripNotes.value, shoppingList: shoppingList.value, expenses: expenses.value, infoList: infoList.value, flights, members: members.value };
+            await supabaseClient.from('trip_data').upsert({ id: tripId.value, content: payload, updated_at: new Date() });
+            setTimeout(() => syncState.value = 'synced', 800);
         }
 
         async function fetchRate() {
@@ -3169,17 +3080,20 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             return dayColors[Math.abs(hash) % dayColors.length];
         };
 
-                // [Patch] Clean up old mechanism
-        onMounted(() => {
-            // Clean LocalStorage specific to old trip system
-            localStorage.removeItem('trips');
-            localStorage.removeItem('active_trip_id');
-            // Keep: app_lang, map_preferences, rate_mode
+        // [Patch] Reactive Trip ID Watcher
+        watch(tripId, async (newVal, oldVal) => {
+            if (newVal && newVal !== oldVal && isInitialized.value) {
+                await fetchCloud();
+            }
+        });
 
-            // Global click listeners (kept from original)
+        // --- 13. Lifecycle Hooks ---
+        onMounted(() => {
+            // Bug Fix 2: Global Click to Clear Quick Calc
             document.addEventListener('click', (e) => {
                 if (quickEstAmount.value === '') return;
                 const wrapper = document.getElementById('quick-est-wrapper');
+                // 若點擊目標不在輸入框容器內，則清空
                 if (wrapper && !wrapper.contains(e.target)) {
                     clearQuickEstOnRateCardBg();
                 }
@@ -3188,18 +3102,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             runIntroSequence();
             Object.assign(editingSettings, settings);
 
-            // Start Auth Flow
-            setupAuth();
-
-            // Setup independent loops
-            // initApp removed, relying on setupAuth callback
-            // (introAppReady 由 runIntroSequence 內部的定時器處理)
-            fetchRate(); fetchWeather(); startPillLoop();
-            autoToggleFlightCard();
-            
-            nextTick(() => { 
-                // ... (rest of the original nextTick logic)
-
+            initApp().then(() => {
                                 introAppReady.value = true;
                 fetchRate(); fetchWeather(); startPillLoop();
    
@@ -3257,7 +3160,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             tempImages, handleMultiFileUpload, removeTempImage, closeImageViewer,
             handleViewerTouchStart, handleViewerTouchMove, handleViewerTouchEnd,
             dayColors, settlementCanvas, activeCategory, handleChartClick, catColors,
-                        userSession, handleLogin, handleLogout, goToPrepInput,
+            isAdminLoggedIn, adminLoginOpen, adminEditOpen, adminCreds, attemptAdminLogin, saveActiveTripId, newTripIdInput, goToPrepInput,
             navPillModalOpen, newNavAddress, navPillLabel, navPillIcon, handlePillDown, handlePillUp, handlePillLeave, saveNavAddress,
             // AI Feature Exports
             aiModalOpen, isAiLoading, aiSuggestions, hasAiGenerated, 
