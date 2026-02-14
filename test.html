@@ -416,6 +416,30 @@
 
 <body>
   <div id="app">
+    <div v-if="!userSession" class="fixed inset-0 z-[99999] bg-[#F2F2F7] flex flex-col items-center justify-center p-6 animate-fade-in">
+        <div class="ios-card p-8 flex flex-col items-center gap-6 max-w-sm w-full bg-white/80 backdrop-blur-xl shadow-2xl">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg text-white mb-2">
+                <i class="ph-fill ph-airplane-tilt text-3xl"></i>
+            </div>
+            <div class="text-center">
+                <h2 class="text-2xl font-bold text-slate-800 mb-2">Travel Sync</h2>
+                <p class="text-sm text-gray-500 font-medium leading-relaxed">請登入以存取您的個人行程工作區<br>Sign in to access your workspace</p>
+            </div>
+            
+            <button @click="handleLogin('google')" class="w-full py-3.5 bg-white border border-gray-200 rounded-xl font-bold text-slate-700 flex items-center justify-center gap-3 shadow-sm active:scale-95 transition-all hover:bg-gray-50">
+                <i class="ph-bold ph-google-logo text-lg text-red-500"></i>
+                Continue with Google
+            </button>
+            
+            <button @click="handleLogin('apple')" class="w-full py-3.5 bg-black text-white rounded-xl font-bold flex items-center justify-center gap-3 shadow-lg shadow-black/20 active:scale-95 transition-all">
+                <i class="ph-fill ph-apple-logo text-xl"></i>
+                Continue with Apple
+            </button>
+            
+            <div class="text-[10px] text-gray-400 font-mono mt-4">v15.03 (Secure Workspace)</div>
+        </div>
+    </div>
+
     <div v-if="introVisible" class="intro-layer" :class="{ 'fade-out': introFading }">
         <div class="sketch-box">
             <div class="sketch-text">
