@@ -1183,7 +1183,7 @@ top-1 w-3.5 h-3.5 rounded-full bg-white border-[3px] border-gray-300 group-hover
         {{ userSession.user.email }}
     </span>
     <button @click="handleLogout" class="text-red-500 hover:text-red-600 transition-colors text-xs font-bold px-2">
-        {{ t('cancel') }} </button>
+        {{ lang === 'zh' ? '登出' : 'Logout' }} </button>
 </div>
 
     <i class="ph-fill ph-user-circle text-4xl"></i>
@@ -2974,7 +2974,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             userSession.value = null;
             isInitialized.value = false; // 強制重置初始化狀態
             // Clear local data visually
-            Object.assign(settings, { route: 'Login Required' });
+            Object.assign(settings, { route: {{ lang === 'zh' ? '請登入' : 'Login Required' }} });
             itinerary.splice(0, itinerary.length);
             showToast('已安全登出');
         };
