@@ -1151,7 +1151,12 @@ top-1 w-3.5 h-3.5 rounded-full bg-white border-[3px] border-gray-300 group-hover
          <div class="ios-card p-5 space-y-6">
              <div class="flex justify-between items-center mb-4">
                  <h2 class="text-xl font-bold">{{ t('settings') }}</h2>
-<button @click="adminLoginOpen = true" class="text-gray-400 hover:text-gray-600 transition-colors rounded-full p-3 active:bg-gray-200/50 -mr-2">
+                 <button @click="openAccountModal" class="text-gray-400 hover:text-gray-600 transition-colors rounded-full p-3 active:bg-gray-200/50 -mr-2 flex items-center gap-2">
+                     <span v-if="currentUser" class="text-[10px] font-bold bg-green-100 text-green-600 px-2 py-0.5 rounded-full">Pro</span>
+                     <span v-else class="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Guest</span>
+                     <i class="ph-fill ph-user-circle text-4xl" :class="currentUser ? 'text-[#007AFF]' : 'text-gray-400'"></i>
+                 </button>
+
     <i class="ph-fill ph-user-circle text-4xl"></i>
 </button>
              </div>
@@ -3354,7 +3359,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             tempImages, handleMultiFileUpload, removeTempImage, closeImageViewer,
             handleViewerTouchStart, handleViewerTouchMove, handleViewerTouchEnd,
             dayColors, settlementCanvas, activeCategory, handleChartClick, catColors,
-            isAdminLoggedIn, adminLoginOpen, adminEditOpen, adminCreds, attemptAdminLogin, saveActiveTripId, newTripIdInput, goToPrepInput,
+            loginModalOpen, currentUser, isGuestMode, handleGoogleLogin, handleAppleLogin, handleGuestSkip, handleLogout, openAccountModal, goToPrepInput,
             navPillModalOpen, newNavAddress, navPillLabel, navPillIcon, handlePillDown, handlePillUp, handlePillLeave, saveNavAddress,
             // AI Feature Exports
             aiModalOpen, isAiLoading, aiSuggestions, hasAiGenerated, 
