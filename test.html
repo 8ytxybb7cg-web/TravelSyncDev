@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync Dev16.01</title>
+  <title>Travel Sync Dev16.02</title>
 
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#F2F2F7">
@@ -416,7 +416,9 @@
 
 <body>
   <div id="app">
-    <div v-if="introAppReady && !userSession" class="fixed inset-0 z-[99999] bg-[#F2F2F7] flex flex-col items-center justify-center p-6 animate-fade-in">
+        <div v-if="introAppReady && !userSession" 
+         class="fixed inset-0 z-[100000] bg-[#F2F2F7] flex flex-col items-center justify-center p-6 animate-fade-in"
+         style="animation-duration: 0.5s;">
         <div class="ios-card p-8 flex flex-col items-center gap-6 max-w-sm w-full bg-white/80 backdrop-blur-xl shadow-2xl">
             <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg text-white mb-2">
                 <i class="ph-fill ph-airplane-tilt text-3xl"></i>
@@ -1729,7 +1731,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
     createApp({
       setup() {
         // --- 1. App State & Core Config ---
-        const appVersion = ref('v260213-16.01');
+        const appVersion = ref('v260213-16.02');
         const currentTab = ref('首頁');
         const syncState = ref('loading');
         const isInitialized = ref(false);
@@ -2965,12 +2967,14 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             if (error) showToast('Login failed: ' + error.message);
         };
 
-        const handleLogout = async () => {
+                const handleLogout = async () => {
             await supabaseClient.auth.signOut();
             userSession.value = null;
+            isInitialized.value = false; // 強制重置初始化狀態
             // Clear local data visually
             Object.assign(settings, { route: 'Login Required' });
             itinerary.splice(0, itinerary.length);
+            showToast('已安全登出');
         };
 
         // 1. Initialize Auth Listener
@@ -3185,9 +3189,9 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             // Start Auth Flow
             setupAuth();
 
-            // Setup independent loops
+                        // Setup independent loops
             // initApp removed, relying on setupAuth callback
-            introAppReady.value = true;
+            // (introAppReady 由 runIntroSequence 內部的定時器處理)
             fetchRate(); fetchWeather(); startPillLoop();
             autoToggleFlightCard();
             
