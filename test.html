@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync v16.014</title>
+  <title>Travel Sync v16.01</title>
 
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#F2F2F7">
@@ -1151,9 +1151,11 @@ top-1 w-3.5 h-3.5 rounded-full bg-white border-[3px] border-gray-300 group-hover
          <div class="ios-card p-5 space-y-6">
              <div class="flex justify-between items-center mb-4">
                  <h2 class="text-xl font-bold">{{ t('settings') }}</h2>
-<button @click="adminLoginOpen = true" class="text-gray-400 hover:text-gray-600 transition-colors rounded-full p-3 active:bg-gray-200/50 -mr-2">
-    <i class="ph-fill ph-user-circle text-4xl"></i>
-</button>
+<div v-if="user" class="text-[10px] font-mono text-gray-400 -mr-2 flex flex-col items-end">
+    <span>{{ user.email }}</span>
+    <button @click="supabaseClient.auth.signOut()" class="text-[#007AFF] font-bold mt-0.5">登出</button>
+</div>
+
              </div>
              <div>
                  <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('routeHeader') }}</label>
@@ -1512,16 +1514,41 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
         </div>
     </div>
 
-            <div v-if="adminLoginOpen" class="modal-backdrop" @click.self="adminLoginOpen=false">
-        <div class="ios-modal-container" style="max-width: 320px;">
-            <div class="ios-modal-header">Admin Login</div>
-            <div class="ios-modal-body space-y-3">
-                <input v-model="adminCreds.u" class="ios-input" placeholder="Username" autocapitalize="off">
-                <input v-model="adminCreds.p" type="password" class="ios-input" placeholder="Password">
+                <div v-if="loginModalOpen" class="modal-backdrop" style="z-index: 9999; background: rgba(242, 242, 247, 0.95); backdrop-filter: blur(20px);">
+        <div class="ios-modal-container" style="max-width: 320px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
+            <div class="ios-modal-header border-b-0 pb-0 pt-6">
+                <div class="flex flex-col items-center gap-2">
+                    <div class="w-12 h-12 rounded-xl bg-[#007AFF] flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+                        <i class="ph-fill ph-airplane-tilt text-2xl"></i>
+                    </div>
+                    <span class="font-bold text-xl text-slate-800 mt-2">Travel Sync</span>
+                </div>
             </div>
-            <div class="ios-modal-footer">
-                <button @click="adminLoginOpen=false" class="btn-ios-cancel">{{ t('cancel') }}</button>
-                <button @click="attemptAdminLogin" class="btn-ios-primary">Login</button>
+            
+            <div v-if="loginStep === 'email'" class="ios-modal-body space-y-4 p-6 pt-2">
+                <p class="text-center text-gray-500 text-sm leading-relaxed">
+                    請輸入 Email 登入或註冊<br>
+                    <span class="text-[10px] opacity-70">系統將發送 Magic Link 給您</span>
+                </p>
+                <input v-model="loginEmail" type="email" class="ios-input text-center font-bold bg-white border border-gray-200 focus:border-blue-500 transition-colors h-12" placeholder="name@example.com">
+                <button @click="handleLogin" class="btn-ios-primary w-full shadow-lg shadow-blue-500/20">
+                    發送登入連結
+                </button>
+            </div>
+
+            <div v-else class="ios-modal-body space-y-4 p-6 pt-2 text-center">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-500 mb-2">
+                    <i class="ph-fill ph-envelope-open text-3xl"></i>
+                </div>
+                <h3 class="font-bold text-lg text-slate-800">已發送連結</h3>
+                <p class="text-sm text-gray-500 leading-relaxed">
+                    請檢查您的信箱：<br>
+                    <b class="text-slate-800">{{ loginEmail }}</b><br>
+                    點擊信中連結即可返回 App
+                </p>
+                <button @click="loginStep = 'email'" class="text-[#007AFF] text-sm font-bold mt-4">
+                    重新輸入 Email
+                </button>
             </div>
         </div>
     </div>
@@ -1578,20 +1605,6 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             </div>
         </div>
     </transition>
-
-    <div v-if="adminEditOpen" class="modal-backdrop">
-        <div class="ios-modal-container" style="max-width: 320px;">
-            <div class="ios-modal-header">Active Trip ID</div>
-            <div class="ios-modal-body space-y-3">
-                <div class="text-xs text-gray-400 text-center px-4">Modifying this will change the data source for ALL users immediately.</div>
-                <input v-model="newTripIdInput" class="ios-input font-mono text-center font-bold" placeholder="trip_id">
-             </div>
-            <div class="ios-modal-footer">
-                <button @click="adminEditOpen=false" class="btn-ios-cancel">{{ t('cancel') }}</button>
-                <button @click="saveActiveTripId" class="btn-ios-primary">{{ t('save') }}</button>
-            </div>
-        </div>
-    </div>
 
         <div v-if="titleModalOpen" class="modal-backdrop" @click.self="titleModalOpen=false">
         <div class="ios-modal-container" style="max-width: 320px;">
@@ -1712,7 +1725,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
     createApp({
       setup() {
         // --- 1. App State & Core Config ---
-        const appVersion = ref('v260213-16.014');
+        const appVersion = ref('v260213-16.01');
         const currentTab = ref('首頁');
         const syncState = ref('loading');
         const isInitialized = ref(false);
@@ -3298,7 +3311,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             tempImages, handleMultiFileUpload, removeTempImage, closeImageViewer,
             handleViewerTouchStart, handleViewerTouchMove, handleViewerTouchEnd,
             dayColors, settlementCanvas, activeCategory, handleChartClick, catColors,
-            isAdminLoggedIn, adminLoginOpen, adminEditOpen, adminCreds, attemptAdminLogin, saveActiveTripId, newTripIdInput, goToPrepInput,
+            user, loginModalOpen, loginEmail, loginStep, handleLogin, isReadOnly, goToPrepInput,
             navPillModalOpen, newNavAddress, navPillLabel, navPillIcon, handlePillDown, handlePillUp, handlePillLeave, saveNavAddress,
             // AI Feature Exports
             aiModalOpen, isAiLoading, aiSuggestions, hasAiGenerated, 
