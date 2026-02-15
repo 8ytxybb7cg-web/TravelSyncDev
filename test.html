@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync v15.03</title>
+  <title>Travel Sync v16.014</title>
 
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#F2F2F7">
@@ -1712,20 +1712,21 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
     createApp({
       setup() {
         // --- 1. App State & Core Config ---
-        const appVersion = ref('v260213-15.03');
+        const appVersion = ref('v260213-16.014');
         const currentTab = ref('首頁');
         const syncState = ref('loading');
         const isInitialized = ref(false);
         const notification = ref(null);
         const lang = ref(localStorage.getItem('app_lang') || 'zh');
         
-        // Admin State
-        const tripId = ref(null);
-        const isAdminLoggedIn = ref(false);
-        const adminLoginOpen = ref(false);
-        const adminEditOpen = ref(false);
-        const adminCreds = reactive({ u: '', p: '' });
-        const newTripIdInput = ref('');
+        // Auth & User State (Rebuilt for Stage 1)
+        const user = ref(null);
+        const loginModalOpen = ref(false);
+        const loginEmail = ref('');
+        const loginStep = ref('email'); // 'email' | 'sent'
+        const isReadOnly = ref(false); // For share links
+        
+        // Removed: active_trip_id, adminCreds, adminLoginOpen
 
         // Intro Loading State
         const introVisible = ref(true);
@@ -2963,46 +2964,152 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             }
         }
 
-        // --- 12. Persistence & Init ---
-        async function initApp() {
+                // --- 12. Persistence & Init (Stage 1 Rebuild) ---
+        
+        // Helper: Load Content into Reactive State
+        function loadContent(c) {
+            if(!c) return;
+            if(c.settings) { Object.assign(settings, c.settings); Object.assign(editingSettings, settings); }
+            if(c.itinerary) {
+                // Clear existing
+                itinerary.splice(0, itinerary.length);
+                c.itinerary.forEach(d => itinerary.push(d || []));
+            }
+            if(c.preTripNotes) preTripNotes.value = c.preTripNotes;
+            if(c.shoppingList) shoppingList.value = c.shoppingList;
+            if(c.expenses) expenses.value = c.expenses;
+            if(c.infoList) infoList.value = c.infoList;
+            if(c.flights) Object.assign(flights, c.flights);
+            if(c.members) members.value = c.members;
+        }
+
+        // Core: Safe Idempotent User Init
+        async function initUser() {
+            if (!user.value) return;
             syncState.value = 'loading';
+            
             try {
-                const { data, error } = await supabaseClient.from('app_config').select('active_trip_id').eq('id', 1).single();
-                if (error || !data?.active_trip_id) throw new Error('Config Error');
-                tripId.value = data.active_trip_id;
-                await fetchCloud();
+                // 1. Try to get own row
+                let { data, error } = await supabaseClient
+                    .from('trip_data')
+                    .select('content')
+                    .eq('user_id', user.value.id)
+                    .maybeSingle();
+                
+                if (error) throw error;
+
+                // 2. If missing, insert default row (Single Row Rule)
+                if (!data) {
+                    const defaultContent = {
+                        settings: { ...settings },
+                        itinerary: [[],[],[],[],[],[]],
+                        members: ['Me']
+                    };
+                    
+                    const { error: insertError } = await supabaseClient
+                        .from('trip_data')
+                        .insert({
+                            user_id: user.value.id,
+                            content: defaultContent,
+                            created_at: new Date()
+                        });
+                        
+                    if (insertError) throw insertError;
+                    loadContent(defaultContent);
+                } else {
+                    loadContent(data.content);
+                }
+                
+                isReadOnly.value = false;
+                syncState.value = 'synced';
+                isInitialized.value = true;
+                
             } catch (e) {
-                console.error(e);
-                syncState.value = 'error'; 
+                console.error("Init Error:", e);
+                syncState.value = 'error';
+                showToast("資料載入失敗");
             }
         }
 
-        async function fetchCloud() {
-            if (!tripId.value) return;
+        // Shared Link Logic (Read Only)
+        async function fetchSharedTrip(sharedId) {
+            syncState.value = 'loading';
             try {
-                const { data } = await supabaseClient.from('trip_data').select('content').eq('id', tripId.value).single();
-                if(data?.content) {
-                    const c = data.content;
-                    if(c.settings) { Object.assign(settings, c.settings); Object.assign(editingSettings, settings); }
-                    if(c.itinerary) c.itinerary.forEach((d,i) => itinerary[i] = d || []);
-                    if(c.preTripNotes) preTripNotes.value = c.preTripNotes;
-                    if(c.shoppingList) shoppingList.value = c.shoppingList;
-                    if(c.expenses) expenses.value = c.expenses;
-                    if(c.infoList) infoList.value = c.infoList;
-                    if(c.flights) Object.assign(flights, c.flights);
-                    else if(c.flight) Object.assign(flights.outbound, c.flight);
-                    if(c.members) members.value = c.members;
+                const { data, error } = await supabaseClient
+                    .from('trip_data')
+                    .select('content')
+                    .eq('id', sharedId) // Assuming UUID in URL
+                    .eq('is_public', true) // RLS enforcement
+                    .maybeSingle();
+
+                if (data && data.content) {
+                    loadContent(data.content);
+                    isReadOnly.value = true;
+                    showToast("正在檢視分享的行程 (唯讀)");
+                    syncState.value = 'synced';
+                    isInitialized.value = true; // Allow UI to render
+                } else {
+                    showToast("連結無效或不公開");
+                    // Fallback to login
+                    setTimeout(() => loginModalOpen.value = true, 1000);
                 }
-                syncState.value = 'synced'; isInitialized.value = true;
-            } catch { syncState.value = 'error'; }
+            } catch (e) {
+                console.error(e);
+                syncState.value = 'error';
+            }
+        }
+
+        // Auth Actions
+        async function handleLogin() {
+            if (!loginEmail.value.includes('@')) {
+                alert('請輸入有效 Email');
+                return;
+            }
+            try {
+                const { error } = await supabaseClient.auth.signInWithOtp({
+                    email: loginEmail.value,
+                    options: {
+                        emailRedirectTo: window.location.href
+                    }
+                });
+                if (error) throw error;
+                loginStep.value = 'sent';
+            } catch (e) {
+                alert(e.message);
+            }
         }
         
-        async function saveAll() {
-            if(!isInitialized.value || !tripId.value) return;
+                async function saveAll() {
+            // Guard: Read-only or Not Initialized or Not Logged In
+            if(!isInitialized.value || isReadOnly.value || !user.value) return;
+
             syncState.value = 'saving';
-            const payload = { settings, itinerary, preTripNotes: preTripNotes.value, shoppingList: shoppingList.value, expenses: expenses.value, infoList: infoList.value, flights, members: members.value };
-            await supabaseClient.from('trip_data').upsert({ id: tripId.value, content: payload, updated_at: new Date() });
-            setTimeout(() => syncState.value = 'synced', 800);
+            const payload = { 
+                settings, 
+                itinerary, 
+                preTripNotes: preTripNotes.value, 
+                shoppingList: shoppingList.value, 
+                expenses: expenses.value, 
+                infoList: infoList.value, 
+                flights, 
+                members: members.value 
+            };
+
+            // Upsert based on User ID (Unique Constraint)
+            const { error } = await supabaseClient
+                .from('trip_data')
+                .upsert({ 
+                    user_id: user.value.id, 
+                    content: payload, 
+                    updated_at: new Date() 
+                }, { onConflict: 'user_id' });
+
+            if (error) {
+                console.error("Save failed:", error);
+                syncState.value = 'error';
+            } else {
+                setTimeout(() => syncState.value = 'synced', 800);
+            }
         }
 
         async function fetchRate() {
@@ -3087,33 +3194,64 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             }
         });
 
-        // --- 13. Lifecycle Hooks ---
+                // --- 13. Lifecycle Hooks (Stage 1 Rebuild) ---
         onMounted(() => {
-            // Bug Fix 2: Global Click to Clear Quick Calc
+            // Global listeners
             document.addEventListener('click', (e) => {
                 if (quickEstAmount.value === '') return;
                 const wrapper = document.getElementById('quick-est-wrapper');
-                // 若點擊目標不在輸入框容器內，則清空
                 if (wrapper && !wrapper.contains(e.target)) {
                     clearQuickEstOnRateCardBg();
                 }
             });
 
+            // 1. Start UI Intro (Non-blocking)
             runIntroSequence();
             Object.assign(editingSettings, settings);
 
-            initApp().then(() => {
-                                introAppReady.value = true;
-                fetchRate(); fetchWeather(); startPillLoop();
-   
-             autoToggleFlightCard();
-                nextTick(() => { 
-                    if(currentTab.value === '首頁' && isPreTrip.value) initSortable('sortable-pre-home', preTripNotes.value); 
-                    initSortable('sortable-info', infoList.value);
-                    if(currentTab.value === '購物') initSortable('sortable-shop-page', shoppingList.value);
-                    if(currentTab.value === '行程' && selectedDay.value === 'prep') initSortable('sortable-pre-notes', preTripNotes.value);
-                });
+            // 2. Auth Listener (UI State Only)
+            supabaseClient.auth.onAuthStateChange((event, session) => {
+                if (event === 'SIGNED_IN' && session) {
+                    user.value = session.user;
+                    loginModalOpen.value = false;
+                    // Trigger init if not already initialized
+                    if (!isInitialized.value) initUser();
+                } else if (event === 'SIGNED_OUT') {
+                    user.value = null;
+                    isInitialized.value = false;
+                    // Note: We don't force reload, just reset state
+                }
             });
+
+            // 3. Background Session Check (The Critical Path)
+            supabaseClient.auth.getSession().then(({ data }) => {
+                if (data.session) {
+                    // Case A: Logged In -> Init User
+                    user.value = data.session.user;
+                    initUser();
+                } else {
+                    // Case B: Not Logged In -> Check Share Link or Show Login
+                    const params = new URLSearchParams(window.location.search);
+                    const shareId = params.get('trip');
+
+                    if (shareId) {
+                        fetchSharedTrip(shareId);
+                    } else {
+                        // Wait for intro to settle, then show login
+                        // (Intro takes ~1.5s total)
+                        setTimeout(() => {
+                            if (!user.value) loginModalOpen.value = true;
+                        }, 2000);
+                    }
+                }
+            });
+
+            introAppReady.value = true;
+            fetchRate(); 
+            fetchWeather(); 
+            startPillLoop();
+            autoToggleFlightCard();
+
             setInterval(fetchRate, 600000);
         });
 
