@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync v15.03</title>
+  <title>Travel Sync v16.01</title>
 
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#F2F2F7">
@@ -1151,9 +1151,11 @@ top-1 w-3.5 h-3.5 rounded-full bg-white border-[3px] border-gray-300 group-hover
          <div class="ios-card p-5 space-y-6">
              <div class="flex justify-between items-center mb-4">
                  <h2 class="text-xl font-bold">{{ t('settings') }}</h2>
-<button @click="adminLoginOpen = true" class="text-gray-400 hover:text-gray-600 transition-colors rounded-full p-3 active:bg-gray-200/50 -mr-2">
-    <i class="ph-fill ph-user-circle text-4xl"></i>
-</button>
+                 <button @click="openAccountModal" class="text-gray-400 hover:text-gray-600 transition-colors rounded-full p-3 active:bg-gray-200/50 -mr-2 flex items-center gap-2">
+                     <span v-if="currentUser" class="text-[10px] font-bold bg-green-100 text-green-600 px-2 py-0.5 rounded-full">Pro</span>
+                     <span v-else class="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Guest</span>
+                     <i class="ph-fill ph-user-circle text-4xl" :class="currentUser ? 'text-[#007AFF]' : 'text-gray-400'"></i>
+                 </button>
              </div>
              <div>
                  <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('routeHeader') }}</label>
@@ -1512,19 +1514,43 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
         </div>
     </div>
 
-            <div v-if="adminLoginOpen" class="modal-backdrop" @click.self="adminLoginOpen=false">
-        <div class="ios-modal-container" style="max-width: 320px;">
-            <div class="ios-modal-header">Admin Login</div>
-            <div class="ios-modal-body space-y-3">
-                <input v-model="adminCreds.u" class="ios-input" placeholder="Username" autocapitalize="off">
-                <input v-model="adminCreds.p" type="password" class="ios-input" placeholder="Password">
+            <div v-if="loginModalOpen" class="modal-backdrop" style="z-index: 9999;">
+    <div class="ios-modal-container p-6 items-center text-center space-y-6" style="max-width: 320px;">
+        <div class="space-y-2">
+            <div class="w-16 h-16 bg-[#007AFF] rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-blue-500/30 mb-4">
+                <i class="ph-fill ph-airplane-tilt text-3xl text-white"></i>
             </div>
-            <div class="ios-modal-footer">
-                <button @click="adminLoginOpen=false" class="btn-ios-cancel">{{ t('cancel') }}</button>
-                <button @click="attemptAdminLogin" class="btn-ios-primary">Login</button>
-            </div>
+            <h2 class="text-xl font-bold text-slate-800">
+                登入 Sign In
+            </h2>
+            <p class="text-xs text-gray-400">
+                登入以同步您的旅程 Sign in to sync your trip
+            </p>
+        </div>
+        
+        <div class="w-full space-y-3">
+            <button @click="handleGoogleLogin" class="w-full h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-transform shadow-sm">
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-5 h-5">
+                <span class="font-bold text-sm text-gray-700">
+                    使用 Google 登入 Continue with Google
+                </span>
+            </button>
+            
+            <button @click="handleAppleLogin" class="w-full h-12 bg-black text-white rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-transform shadow-lg shadow-black/20">
+                <i class="ph-fill ph-apple-logo text-xl"></i>
+                <span class="font-bold text-sm">
+                    使用 Apple 登入 Continue with Apple
+                </span>
+            </button>
+        </div>
+
+        <div class="pt-2">
+            <button @click="handleGuestSkip" class="text-xs font-bold text-gray-400 hover:text-gray-600 px-4 py-2">
+                略過 Skip
+            </button>
         </div>
     </div>
+</div>
 
         <div v-if="navPillModalOpen" class="modal-backdrop" @click.self="navPillModalOpen=false">
         <div class="ios-modal-container" style="max-width: 320px;">
@@ -1712,7 +1738,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
     createApp({
       setup() {
         // --- 1. App State & Core Config ---
-        const appVersion = ref('v260213-15.03');
+        const appVersion = ref('v260213-16.01');
         const currentTab = ref('首頁');
         const syncState = ref('loading');
         const isInitialized = ref(false);
@@ -3014,46 +3040,160 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             }
         }
 
-        // --- 12. Persistence & Init ---
+                // --- 12. Persistence & Init ---
+        
+        // 初始化入口
         async function initApp() {
             syncState.value = 'loading';
+            
+            // 1. 檢查網址是否有 Share Link (?trip=xxx)
+            const params = new URLSearchParams(window.location.search);
+            const sharedTrip = params.get('trip');
+
+            // 2. 監聽 Auth 狀態 (這是核心驅動)
+            supabaseClient.auth.onAuthStateChange(async (event, session) => {
+                currentUser.value = session?.user || null;
+                
+                if (currentUser.value) {
+                    // A. 已登入：載入用戶 Trip
+                    isGuestMode.value = false;
+                    loginModalOpen.value = false; // 確保關閉 Modal
+                    await loadUserTrip();
+                } else {
+                    // B. 未登入：檢查是否為 Share Link
+                    isGuestMode.value = true;
+                    if (sharedTrip) {
+                        tripId.value = sharedTrip;
+                        await fetchCloud(); // 嘗試讀取 (RLS 會擋擋非公開)
+                    } else {
+                        // C. 純訪客且無 Link：是否已完成 Intro?
+                        // Intro 結束後會由 runIntroSequence 觸發 loginModalOpen
+                        syncState.value = 'synced'; // 空狀態
+                        isInitialized.value = true;
+                    }
+                }
+            });
+        }
+
+        // 載入或建立用戶唯一的 Trip
+        async function loadUserTrip() {
+            syncState.value = 'loading';
             try {
-                const { data, error } = await supabaseClient.from('app_config').select('active_trip_id').eq('id', 1).single();
-                if (error || !data?.active_trip_id) throw new Error('Config Error');
-                tripId.value = data.active_trip_id;
-                await fetchCloud();
+                const uid = currentUser.value.id;
+                // 1. 查詢是否已有 Trip
+                const { data, error } = await supabaseClient
+                    .from('trip_data')
+                    .select('id, content')
+                    .eq('user_id', uid)
+                    .maybeSingle(); // 使用 maybeSingle 避免無資料報錯
+
+                if (data) {
+                    // 有資料 -> 載入
+                    tripId.value = data.id;
+                    await loadContent(data.content);
+                } else {
+                    // 無資料 -> 自動建立 (Free Tier 1 row)
+                    await createDefaultTrip(uid);
+                }
+                isInitialized.value = true;
+                syncState.value = 'synced';
+            } catch (e) {
+                console.error('Load Trip Error:', e);
+                syncState.value = 'error';
+            }
+        }
+
+        // 建立預設 Trip
+        async function createDefaultTrip(uid) {
+            const newId = generateId(); // 前端生成 UUID 風格 ID (或依賴 DB default)
+            // 準備空數據結構
+            const initialContent = {
+                settings: { ...settings }, // 複製預設值
+                itinerary: [[],[],[],[],[],[]],
+                members: ['Me'],
+                active: true
+            };
+            
+            const { data, error } = await supabaseClient
+                .from('trip_data')
+                .insert([{ 
+                    user_id: uid, 
+                    content: initialContent,
+                    is_public: false
+                }])
+                .select()
+                .single();
+
+            if (error) {
+                showToast(t('createTripError'));
+                console.error(error);
+            } else if (data) {
+                tripId.value = data.id;
+                await loadContent(initialContent); // 直接載入初始值
+            }
+        }
+
+        // 統一載入內容邏輯
+        async function loadContent(c) {
+            if(!c) return;
+            if(c.settings) { Object.assign(settings, c.settings); Object.assign(editingSettings, settings); }
+            if(c.itinerary) {
+                // 重置並載入
+                itinerary.splice(0, itinerary.length);
+                c.itinerary.forEach(d => itinerary.push(d || []));
+            }
+            if(c.preTripNotes) preTripNotes.value = c.preTripNotes;
+            if(c.shoppingList) shoppingList.value = c.shoppingList;
+            if(c.expenses) expenses.value = c.expenses;
+            if(c.infoList) infoList.value = c.infoList;
+            if(c.flights) Object.assign(flights, c.flights);
+            else if(c.flight) Object.assign(flights.outbound, c.flight);
+            if(c.members) members.value = c.members;
+        }
+
+        // 雲端讀取 (Share Mode 使用)
+        async function fetchCloud() {
+            if (!tripId.value) return;
+            try {
+                const { data, error } = await supabaseClient
+                    .from('trip_data')
+                    .select('content')
+                    .eq('id', tripId.value)
+                    .single();
+                
+                if (error) throw error;
+                await loadContent(data.content);
+                syncState.value = 'synced';
+                isInitialized.value = true;
             } catch (e) {
                 console.error(e);
                 syncState.value = 'error'; 
             }
         }
 
-        async function fetchCloud() {
-            if (!tripId.value) return;
-            try {
-                const { data } = await supabaseClient.from('trip_data').select('content').eq('id', tripId.value).single();
-                if(data?.content) {
-                    const c = data.content;
-                    if(c.settings) { Object.assign(settings, c.settings); Object.assign(editingSettings, settings); }
-                    if(c.itinerary) c.itinerary.forEach((d,i) => itinerary[i] = d || []);
-                    if(c.preTripNotes) preTripNotes.value = c.preTripNotes;
-                    if(c.shoppingList) shoppingList.value = c.shoppingList;
-                    if(c.expenses) expenses.value = c.expenses;
-                    if(c.infoList) infoList.value = c.infoList;
-                    if(c.flights) Object.assign(flights, c.flights);
-                    else if(c.flight) Object.assign(flights.outbound, c.flight);
-                    if(c.members) members.value = c.members;
-                }
-                syncState.value = 'synced'; isInitialized.value = true;
-            } catch { syncState.value = 'error'; }
-        }
-        
-        async function saveAll() {
-            if(!isInitialized.value || !tripId.value) return;
+                async function saveAll() {
+            // Guard: 未初始化、無 Trip ID 或 訪客模式 禁止存檔
+            if(!isInitialized.value || !tripId.value || isGuestMode.value) return;
+
             syncState.value = 'saving';
             const payload = { settings, itinerary, preTripNotes: preTripNotes.value, shoppingList: shoppingList.value, expenses: expenses.value, infoList: infoList.value, flights, members: members.value };
-            await supabaseClient.from('trip_data').upsert({ id: tripId.value, content: payload, updated_at: new Date() });
-            setTimeout(() => syncState.value = 'synced', 800);
+            
+            // RLS 會在後端再次阻擋非擁有者的寫入
+            const { error } = await supabaseClient
+                .from('trip_data')
+                .upsert({ 
+                    id: tripId.value, 
+                    user_id: currentUser.value.id, // 確保綁定
+                    content: payload, 
+                    updated_at: new Date() 
+                }, { onConflict: 'user_id' }); // 使用 user_id 作為主要鍵值邏輯
+
+            if (error) {
+                console.error('Save Error', error);
+                syncState.value = 'error';
+            } else {
+                setTimeout(() => syncState.value = 'synced', 800);
+            }
         }
 
         async function fetchRate() {
@@ -3112,11 +3252,17 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             }, 100);
         }
 
-        function finishIntro() {
+                function finishIntro() {
             introProgress.value = 100;
             setTimeout(() => {
                 introFading.value = true; 
-                setTimeout(() => { introVisible.value = false; }, 200);
+                setTimeout(() => { 
+                    introVisible.value = false;
+                    // Intro 結束後，若未登入且無 Trip ID (Share Mode)，則顯示登入框
+                    if (!currentUser.value && !tripId.value) {
+                        loginModalOpen.value = true;
+                    }
+                }, 200);
             }, 250);
         }
 
@@ -3211,7 +3357,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             tempImages, handleMultiFileUpload, removeTempImage, closeImageViewer,
             handleViewerTouchStart, handleViewerTouchMove, handleViewerTouchEnd,
             dayColors, settlementCanvas, activeCategory, handleChartClick, catColors,
-            isAdminLoggedIn, adminLoginOpen, adminEditOpen, adminCreds, attemptAdminLogin, saveActiveTripId, newTripIdInput, goToPrepInput,
+            loginModalOpen, currentUser, isGuestMode, handleGoogleLogin, handleAppleLogin, handleGuestSkip, handleLogout, openAccountModal, goToPrepInput,
             navPillModalOpen, newNavAddress, navPillLabel, navPillIcon, handlePillDown, handlePillUp, handlePillLeave, saveNavAddress,
             // AI Feature Exports
             aiModalOpen, isAiLoading, aiSuggestions, hasAiGenerated, 
