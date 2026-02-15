@@ -1529,28 +1529,27 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
         </div>
         
         <div class="w-full space-y-3">
-            <button @click="handleGoogleLogin" class="w-full h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-transform shadow-sm">
-                <img src="https://cdn-icons-png.freepik.com/512/16509/16509564.png?ga=GA1.1.1798704515.1770529818" class="w-5 h-5">
-                <span class="font-bold text-sm text-gray-700">
-                    繼續使用 Google
-                </span>
-            </button>
-            
-            <button @click="handleAppleLogin" class="w-full h-12 bg-black text-white rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-transform shadow-lg shadow-black/20">
-                <i class="ph-fill ph-apple-logo text-xl"></i>
-                <span class="font-bold text-sm">
-                    繼續使用 Apple
-                </span>
-            </button>
-            
-                       
-            <button class="w-full h-12 bg-black text-white rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-transform shadow-lg shadow-black/20">
-                <i class="ph-fill ph ph-envelope text-xl"></i>
-                <span class="font-bold text-sm">
-                    使用電郵繼續
-                </span>
-            </button>
-        </div>
+    <button @click="handleGoogleLogin" class="w-full h-12 bg-[#E8E8E8] border border-gray-200 rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-transform shadow-sm">
+        <img src="https://cdn-icons-png.freepik.com/512/16509/16509564.png?ga=GA1.1.1798704515.1770529818" class="w-5 h-5">
+        <span class="font-bold text-sm text-black">
+            繼續使用 Google
+        </span>
+    </button>
+    
+    <button @click="handleAppleLogin" class="w-full h-12 bg-[#E8E8E8] text-black rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-transform">
+        <i class="ph-fill ph-apple-logo text-xl"></i>
+        <span class="font-bold text-sm">
+            繼續使用 Apple
+        </span>
+    </button>
+    
+    <button class="w-full h-12 bg-[#E8E8E8] text-black rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-transform">
+        <i class="ph-fill ph-envelope text-xl"></i>
+        <span class="font-bold text-sm">
+            使用電郵繼續
+        </span>
+    </button>
+</div>
 
         <div class="pt-2">
             <button @click="handleGuestSkip" class="text-xs font-bold text-gray-400 hover:text-gray-600 px-4 py-2">
