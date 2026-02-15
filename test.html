@@ -1517,14 +1517,14 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             <div v-if="loginModalOpen" class="modal-backdrop" style="z-index: 9999;">
     <div class="ios-modal-container p-6 items-center text-center space-y-6" style="max-width: 320px;">
         <div class="space-y-2">
-            <div class="w-16 h-16 bg-[#007AFF] rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-blue-500/30 mb-4">
+            <div class="w-16 h-16 bg-[#007AFF] rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-blue-500/30 mb-4">
                 <img src="https://8ytxybb7cg-web.github.io/TravelSyncDev/icons/icon-192.png">
             </div>
             <h2 class="text-xl font-bold text-slate-800">
                 開始使用Travel Sync
             </h2>
             <p class="text-xs text-gray-400">
-                登入以同步您的旅程 Sign in to sync your trip
+                登入以同步您的旅程<br>Sign in to sync your trip
             </p>
         </div>
         
@@ -1532,14 +1532,22 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             <button @click="handleGoogleLogin" class="w-full h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-transform shadow-sm">
                 <img src="https://cdn-icons-png.freepik.com/512/16509/16509564.png?ga=GA1.1.1798704515.1770529818" class="w-5 h-5">
                 <span class="font-bold text-sm text-gray-700">
-                    使用 Google 登入<br>Sign in with Google
+                    繼續使用 Google
                 </span>
             </button>
             
             <button @click="handleAppleLogin" class="w-full h-12 bg-black text-white rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-transform shadow-lg shadow-black/20">
                 <i class="ph-fill ph-apple-logo text-xl"></i>
                 <span class="font-bold text-sm">
-                    使用 Apple 登入<br>Sign in with Apple
+                    繼續使用 Apple
+                </span>
+            </button>
+            
+                       
+            <button class="w-full h-12 bg-black text-white rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-transform shadow-lg shadow-black/20">
+                <i class="ph-fill ph ph-envelope text-xl"></i>
+                <span class="font-bold text-sm">
+                    使用電郵繼續
                 </span>
             </button>
         </div>
