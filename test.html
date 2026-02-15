@@ -1719,12 +1719,51 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
         const notification = ref(null);
         const lang = ref(localStorage.getItem('app_lang') || 'zh');
         
-        // Admin State
-        const tripId = ref(null);
-        const isAdminLoggedIn = ref(false);
-        const adminLoginOpen = ref(false);
-        const adminEditOpen = ref(false);
-        const adminCreds = reactive({ u: '', p: '' });
+                // Auth & User State
+        const currentUser = ref(null);
+        const loginModalOpen = ref(false);
+        const isGuestMode = ref(true); // 預設為訪客
+        const tripId = ref(null); // 核心 Trip ID
+        
+        // Admin UI Logic (Legacy variables removed, replaced by Auth)
+        const newTripIdInput = ref('');
+        const adminEditOpen = ref(false); // 保留給 Dev/Debug 用途，改為顯示 User Info
+        // Login Actions
+        const handleGoogleLogin = async () => {
+            const { error } = await supabaseClient.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: window.location.origin // 返回當前頁面
+                }
+            });
+            if (error) showToast(error.message);
+        };
+        
+        const handleAppleLogin = () => {
+            alert(t('comingSoon'));
+        };
+
+        const handleGuestSkip = () => {
+            loginModalOpen.value = false;
+            // 保持 Guest Mode, 顯示空 Demo 狀態 (無法編輯)
+        };
+
+        const handleLogout = async () => {
+            if(confirm(t('confirmLogout'))) {
+                await supabaseClient.auth.signOut();
+                // 登出後重整或清空狀態，這裡選擇 reload 最乾淨
+                window.location.reload(); 
+            }
+        };
+        
+        const openAccountModal = () => {
+            if (!currentUser.value) {
+                loginModalOpen.value = true;
+            } else {
+                handleLogout(); // 目前 Stage 1 點擊即登出，之後可改為選單
+            }
+        };
+
         const newTripIdInput = ref('');
 
         // Intro Loading State
@@ -1998,6 +2037,18 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
                 'weatherLoc': { zh: '天氣地點', en: 'Weather Location' }, 'openMaps': { zh: '打開地圖', en: 'Open Maps' }, 'navigate': { zh: '導航', en: 'Navigate' },
                 'mapApp': { zh: '地圖 App', en: 'Map App' }, 'map_name_Google': { zh: 'Google', en: 'Google' }, 'map_name_Apple': { zh: 'Apple', en: 'Apple' },
                                 'map_name_NAVER': { zh: 'NAVER', en: 'NAVER' }, 'map_name_Amap': { zh: '高德', en: 'A-map' },
+                // Auth & Login
+                'login': { zh: '登入', en: 'Sign In' },
+                'loginDesc': { zh: '登入以同步您的旅程', en: 'Sign in to sync your trip' },
+                'googleLogin': { zh: '使用 Google 登入', en: 'Continue with Google' },
+                'appleLogin': { zh: '使用 Apple 登入', en: 'Continue with Apple' },
+                'skip': { zh: '略過 (訪客模式)', en: 'Skip' },
+                'logout': { zh: '登出', en: 'Sign Out' },
+                'confirmLogout': { zh: '確定要登出嗎？', en: 'Confirm Sign Out?' },
+                'account': { zh: '帳戶', en: 'Account' },
+                'guestView': { zh: '訪客瀏覽中', en: 'Guest View' },
+                'createTripError': { zh: '建立行程失敗', en: 'Failed to create trip' },
+                'comingSoon': { zh: '敬請期待', en: 'Coming Soon' },
                 'showNavPill': { zh: '導航動態島', en: 'Nav Pill' }, 'setDest': { zh: '設定目的地', en: 'Set Destination' },
                 'setDestDesc': { zh: '輸入地址後，點擊膠囊即可導航', en: 'Enter address for quick navigation' }
             };
