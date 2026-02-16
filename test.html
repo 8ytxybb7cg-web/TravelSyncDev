@@ -1149,14 +1149,16 @@ top-1 w-3.5 h-3.5 rounded-full bg-white border-[3px] border-gray-300 group-hover
 
                      <div v-if="currentTab === '設定'" class="animate-fade-in pb-24 pt-5">
          <div class="ios-card p-5 space-y-6">
-             <div class="flex justify-between items-center mb-4">
-                 <h2 class="text-xl font-bold">{{ t('settings') }}</h2>
-<div v-if="user" class="text-[10px] font-mono text-gray-400 -mr-2 flex flex-col items-end">
-    <span>{{ user.email }}</span>
-    <button @click="supabaseClient.auth.signOut()" class="text-[#007AFF] font-bold mt-0.5">登出</button>
-</div>
-
+                          <div class="flex items-center gap-2">
+                 <div v-if="user" class="text-right">
+                     <div class="text-[10px] font-mono text-gray-400">{{ user.email }}</div>
+                     <button @click="supabaseClient.auth.signOut()" class="text-[#007AFF] text-[10px] font-bold">登出</button>
+                 </div>
+                 <div v-else>
+                     <button @click="loginModalOpen = true" class="text-[#007AFF] text-xs font-bold">登入 / 註冊</button>
+                 </div>
              </div>
+
              <div>
                  <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">{{ t('routeHeader') }}</label>
                  <input v-model="editingSettings.route" class="ios-input font-bold" placeholder="HKG ✈️ KIX">
@@ -1553,6 +1555,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
         </div>
     </div>
 
+
         <div v-if="navPillModalOpen" class="modal-backdrop" @click.self="navPillModalOpen=false">
         <div class="ios-modal-container" style="max-width: 320px;">
             <div class="ios-modal-header">{{ t('setDest') }}</div>
@@ -1562,49 +1565,8 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             </div>
             <div class="ios-modal-footer">
                 <button @click="navPillModalOpen=false" class="btn-ios-cancel">{{ t('cancel') }}</button>
-                <button @click="saveNavAddress" class="btn-ios-primary">{{ t('save') }}</button>
-            </div>
-        </div>
-    </div>
+                <button @cli<div v-if="titleModalOpen"
 
-            <transition name="fade">
-        <div v-if="aiModalOpen" class="modal-backdrop" @click.self="aiModalOpen=false">
-            <div class="ios-modal-container" style="max-height: 80vh;">
-                <div class="ios-modal-header border-b-0 pb-0">
-                    <div class="flex flex-col items-center gap-1">
-                        <i class="ph-fill 
-                        ph-sparkle text-[#007AFF] text-2xl ai-sparkle"></i>
-                        <span class="font-bold text-lg text-slate-800">AI 推薦行程</span>
-                    </div>
-                </div>
-                <div class="ios-modal-body space-y-3 p-4">
-                      <div v-if="isAiLoading" class="py-10 text-center flex flex-col items-center gap-3">
-                        <i class="ph-bold ph-spinner animate-spin text-3xl text-[#007AFF]"></i>
-                        <span class="text-xs font-bold text-gray-400">正在搜尋附近好去處...</span>
-                     </div>
-                     <div v-else class="space-y-3">
-                        <div v-for="(sugg, i) in aiSuggestions" :key="i" class="ai-suggestion-card relative group hover:bg-white/50 transition-colors p-4 border border-blue-100/50">
-                            <div class="flex justify-between items-start mb-1">
-                                <span class="text-xs font-mono font-bold text-[#007AFF] bg-blue-50 px-2 py-0.5 rounded">{{ sugg.time }}</span>
-                                <button @click="acceptAiSuggestion(sugg)" class="text-xs font-bold text-white bg-[#007AFF] px-3 py-1 rounded-full shadow-lg shadow-blue-500/30 active:scale-95 transition-transform">
-                                     <i class="ph-bold ph-plus"></i> 加入
-                                </button>
-                            </div>
-                            <h4 class="font-bold text-slate-800 mb-1">{{ 
-                            sugg.title }}</h4>
-                            <p class="text-xs text-gray-500 leading-relaxed">{{ sugg.note }}</p>
-                            <div class="mt-2 flex items-center gap-1 text-[10px] text-gray-400">
-                                <i class="ph-fill ph-map-pin"></i> {{ sugg.address }}
-                            </div>
-                        </div>
-                     </div>
-                </div>
-                 <div class="ios-modal-footer">
-                    <button @click="aiModalOpen=false" class="btn-ios-cancel">關閉</button>
-                </div>
-            </div>
-        </div>
-    </transition>
 
         <div v-if="titleModalOpen" class="modal-backdrop" @click.self="titleModalOpen=false">
         <div class="ios-modal-container" style="max-width: 320px;">
@@ -1732,14 +1694,14 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
         const notification = ref(null);
         const lang = ref(localStorage.getItem('app_lang') || 'zh');
         
-        // Auth & User State (Rebuilt for Stage 1)
+        // Auth & User State (Stage 1 Rebuild)
         const user = ref(null);
         const loginModalOpen = ref(false);
         const loginEmail = ref('');
         const loginStep = ref('email'); // 'email' | 'sent'
         const isReadOnly = ref(false); // For share links
         
-        // Removed: active_trip_id, adminCreds, adminLoginOpen
+        // Removed: active_trip_id, adminCreds...
 
         // Intro Loading State
         const introVisible = ref(true);
@@ -2984,15 +2946,16 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             if(!c) return;
             if(c.settings) { Object.assign(settings, c.settings); Object.assign(editingSettings, settings); }
             if(c.itinerary) {
-                // Clear existing
+                // Clear existing and replace
                 itinerary.splice(0, itinerary.length);
-                c.itinerary.forEach(d => itinerary.push(d || []));
+                if(Array.isArray(c.itinerary)) c.itinerary.forEach(d => itinerary.push(d || []));
             }
             if(c.preTripNotes) preTripNotes.value = c.preTripNotes;
             if(c.shoppingList) shoppingList.value = c.shoppingList;
             if(c.expenses) expenses.value = c.expenses;
             if(c.infoList) infoList.value = c.infoList;
             if(c.flights) Object.assign(flights, c.flights);
+            else if(c.flight) Object.assign(flights.outbound, c.flight); // Legacy support
             if(c.members) members.value = c.members;
         }
 
@@ -3051,7 +3014,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
                 const { data, error } = await supabaseClient
                     .from('trip_data')
                     .select('content')
-                    .eq('id', sharedId) // Assuming UUID in URL
+                    .eq('id', sharedId) // UUID Check
                     .eq('is_public', true) // RLS enforcement
                     .maybeSingle();
 
@@ -3060,7 +3023,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
                     isReadOnly.value = true;
                     showToast("正在檢視分享的行程 (唯讀)");
                     syncState.value = 'synced';
-                    isInitialized.value = true; // Allow UI to render
+                    isInitialized.value = true; 
                 } else {
                     showToast("連結無效或不公開");
                     // Fallback to login
@@ -3218,52 +3181,64 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
                 }
             });
 
-            // 1. Start UI Intro (Non-blocking)
+            // TRACK A: UI Intro (Non-blocking, starts immediately)
             runIntroSequence();
             Object.assign(editingSettings, settings);
 
-            // 2. Auth Listener (UI State Only)
+            // TRACK B: Auth Check (Background)
+            
+            // 1. Auth Listener (Updates State Only, NO RELOADS)
             supabaseClient.auth.onAuthStateChange((event, session) => {
                 if (event === 'SIGNED_IN' && session) {
                     user.value = session.user;
                     loginModalOpen.value = false;
-                    // Trigger init if not already initialized
+                    // Idempotent init: only runs if we haven't initialized yet
                     if (!isInitialized.value) initUser();
                 } else if (event === 'SIGNED_OUT') {
                     user.value = null;
                     isInitialized.value = false;
-                    // Note: We don't force reload, just reset state
+                    loginModalOpen.value = true;
                 }
             });
 
-            // 3. Background Session Check (The Critical Path)
+            // 2. Initial Session Check (Critical Path)
             supabaseClient.auth.getSession().then(({ data }) => {
                 if (data.session) {
-                    // Case A: Logged In -> Init User
+                    // Case A: Already Logged In -> Init Data silently behind intro
                     user.value = data.session.user;
                     initUser();
                 } else {
-                    // Case B: Not Logged In -> Check Share Link or Show Login
+                    // Case B: Not Logged In
                     const params = new URLSearchParams(window.location.search);
                     const shareId = params.get('trip');
 
                     if (shareId) {
-                        fetchSharedTrip(shareId);
+                        // Logic: Wait for intro to be somewhat ready, then fetch share
+                        setTimeout(() => fetchSharedTrip(shareId), 500);
                     } else {
-                        // Wait for intro to settle, then show login
-                        // (Intro takes ~1.5s total)
+                        // Logic: Wait for intro to finish, then show Login Modal
+                        // We do NOT show modal immediately to avoid visual clutter
                         setTimeout(() => {
-                            if (!user.value) loginModalOpen.value = true;
+                            if (!user.value && !isReadOnly.value) loginModalOpen.value = true;
                         }, 2000);
                     }
                 }
             });
 
+            // Standard Init
             introAppReady.value = true;
             fetchRate(); 
             fetchWeather(); 
             startPillLoop();
             autoToggleFlightCard();
+
+            // Next Tick Sortables
+            nextTick(() => { 
+                if(currentTab.value === '首頁' && isPreTrip.value) initSortable('sortable-pre-home', preTripNotes.value); 
+                initSortable('sortable-info', infoList.value);
+                if(currentTab.value === '購物') initSortable('sortable-shop-page', shoppingList.value);
+                if(currentTab.value === '行程' && selectedDay.value === 'prep') initSortable('sortable-pre-notes', preTripNotes.value);
+            });
 
             setInterval(fetchRate, 600000);
         });
