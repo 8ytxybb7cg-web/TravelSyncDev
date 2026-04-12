@@ -444,7 +444,7 @@
     </div>
 
     <div class="bg-fixed-layer">
-        <img src="./IMG_7502.jpeg" alt="Background">
+        <img src="./IMG_1641.jpeg" alt="Background">
         <div class="bg-overlay"></div>
     </div>
                 <header @click="scrollToTop" class="cursor-pointer fixed top-0 left-0 right-0 z-50 pt-10 pb-4 px-6 flex justify-between items-end bg-gradient-to-b from-white/30 to-white/5 backdrop-blur-xl shadow-[0_1px_0_0_rgba(255,255,255,0.2)] transition-all duration-300 active-press">
@@ -1302,7 +1302,6 @@ top-1 w-3.5 h-3.5 rounded-full bg-white border-[3px] border-gray-300 group-hover
                             <option :value="settings.localCurrency">{{ settings.localCurrency }}</option>
                             <option :value="settings.homeCurrency">{{ settings.homeCurrency }}</option>
                             <option value="USD">USD</option>
-                            <option value="JPY">JPY</option>
                          </select>
                          <i class="ph ph-caret-down absolute right-2 top-[18px] text-gray-400 text-xs pointer-events-none"></i>
                      </div>
@@ -2139,7 +2138,17 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
 
         const expenseFilter = ref('all');
         const filteredExpenses = computed(() => {
-            let list = [...expenses.value].sort((a,b) => new Date(b.date) - new Date(a.date));
+            let list = [...expenses.value].sort((a,b) => {
+                if (a.order_index !== undefined && b.order_index !== undefined) return a.order_index - b.order_index;
+                if (a.order_index === undefined && b.order_index !== undefined) return -1;
+                if (a.order_index !== undefined && b.order_index === undefined) return 1;
+
+                const dateA = new Date(a.date).getTime();
+                const dateB = new Date(b.date).getTime();
+                if (dateA !== dateB) return dateB - dateA;
+
+                return (b.created_at || 0) - (a.created_at || 0);
+            });
             if(expenseFilter.value === 'credit') return list.filter(e => e.paymentMethod === 'credit_card');
             if(expenseFilter.value === 'cash') return list.filter(e => e.paymentMethod === 'cash');
             return list;
