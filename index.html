@@ -3058,6 +3058,25 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             if(el) Sortable.create(el, { handle:'.drag-handle', animation:150, onEnd:(evt)=>{ const item = list.splice(evt.oldIndex, 1)[0]; list.splice(evt.newIndex, 0, item); saveAll(); }});
         }
 
+        function initExpenseSortable() {
+            const el = document.getElementById('sortable-expenses');
+            if(el) Sortable.create(el, {
+                handle: '.drag-handle',
+                animation: 150,
+                onEnd: () => {
+                    const itemEls = Array.from(el.children);
+                    itemEls.forEach((child, index) => {
+                        const id = child.getAttribute('data-id');
+                        if (id) {
+                            const exp = expenses.value.find(x => x.id === id);
+                            if (exp) exp.order_index = index;
+                        }
+                    });
+                    saveAll();
+                }
+            });
+        }
+
         function runIntroSequence() {
             setTimeout(() => { introProgress.value = 60; }, 50);
             setTimeout(() => { introProgress.value = 75; }, 900);
@@ -3121,8 +3140,10 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
                     initSortable('sortable-info', infoList.value);
                     if(currentTab.value === '購物') initSortable('sortable-shop-page', shoppingList.value);
                     if(currentTab.value === '行程' && selectedDay.value === 'prep') initSortable('sortable-pre-notes', preTripNotes.value);
+                    if(currentTab.value === '記帳' && expenseFilter.value === 'all') initExpenseSortable();
                 });
             });
+
             setInterval(fetchRate, 600000);
         });
 
@@ -3133,14 +3154,14 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             if(val === '行程' && selectedDay.value === 'prep') nextTick(() => initSortable('sortable-pre-notes', preTripNotes.value));
             if(val === '首頁' && isPreTrip.value) nextTick(() => initSortable('sortable-pre-home', preTripNotes.value));
             if(val === '購物') nextTick(() => initSortable('sortable-shop-page', shoppingList.value));
+            if(val === '記帳' && expenseFilter.value === 'all') nextTick(initExpenseSortable);
         });
-
         watch(selectedDay, (val) => {
             if(val === 'prep' && currentTab.value === '行程') nextTick(() => initSortable('sortable-pre-notes', preTripNotes.value));
         });
-
         watch(expenseFilter, (val) => {
             if (val === 'settlement') { activeCategory.value = null; nextTick(drawSettlementChart); }
+            else if (val === 'all' && currentTab.value === '記帳') { nextTick(initExpenseSortable); }
         });
         watch([expenses, lang], () => { if (expenseFilter.value === 'settlement') nextTick(drawSettlementChart); }, { deep: true });
         
