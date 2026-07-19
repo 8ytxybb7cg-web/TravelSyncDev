@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Travel Sync Dev v16.01</title>
+  <title>Travel Sync v16.01</title>
 
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#F2F2F7">
@@ -444,7 +444,7 @@
     </div>
 
     <div class="bg-fixed-layer">
-        <img src="./Osaka.jpg" alt="Background">
+        <img src="./IMG_1641.jpeg" alt="Background">
         <div class="bg-overlay"></div>
     </div>
                 <header @click="scrollToTop" class="cursor-pointer fixed top-0 left-0 right-0 z-50 pt-10 pb-4 px-6 flex justify-between items-end bg-gradient-to-b from-white/30 to-white/5 backdrop-blur-xl shadow-[0_1px_0_0_rgba(255,255,255,0.2)] transition-all duration-300 active-press">
@@ -1705,7 +1705,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
 
     // Supabase Config
     const SUPABASE_URL = 'https://myrhatzdypiwwgmmfbuw.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cmhhdHpkeXBpd3dnbW1mYnV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1MTM4NzUsImV4cCI6MjA4MTA4OTg3NX0.s6w2f3pKovuFYkR09bLvPBVJUa6b3Uw2gIXrlw9teb8';
+    const SUPABASE_KEY = 'sb_publishable_bnnah-2fsCaQnKZDoKNJQw_NuYQVvKi';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     createApp({
@@ -2989,7 +2989,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
         async function fetchCloud() {
             if (!tripId.value) return;
             try {
-                const { data } = await supabaseClient.from('trip_data').select('content').eq('id', tripId.value).single();
+                const { data } = await supabaseClient.from('private_trip_data').select('content').eq('id', tripId.value).single();
                 if(data?.content) {
                     const c = data.content;
                     if(c.settings) { Object.assign(settings, c.settings); Object.assign(editingSettings, settings); }
@@ -3010,7 +3010,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             if(!isInitialized.value || !tripId.value) return;
             syncState.value = 'saving';
             const payload = { settings, itinerary, preTripNotes: preTripNotes.value, shoppingList: shoppingList.value, expenses: expenses.value, infoList: infoList.value, flights, members: members.value };
-            await supabaseClient.from('trip_data').upsert({ id: tripId.value, content: payload, updated_at: new Date() });
+            await supabaseClient.from('private_trip_data').upsert({ id: tripId.value, content: payload, updated_at: new Date() });
             setTimeout(() => syncState.value = 'synced', 800);
         }
 
