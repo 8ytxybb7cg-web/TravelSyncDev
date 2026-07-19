@@ -2989,7 +2989,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
         async function fetchCloud() {
             if (!tripId.value) return;
             try {
-                const { data } = await supabaseClient.from('private_trip_data').select('content').eq('id', tripId.value).single();
+                const { data } = await supabaseClient.from('trip_data').select('content').eq('id', tripId.value).single();
                 if(data?.content) {
                     const c = data.content;
                     if(c.settings) { Object.assign(settings, c.settings); Object.assign(editingSettings, settings); }
@@ -3010,7 +3010,7 @@ focus:bg-white border border-transparent focus:border-blue-200 transition-all" p
             if(!isInitialized.value || !tripId.value) return;
             syncState.value = 'saving';
             const payload = { settings, itinerary, preTripNotes: preTripNotes.value, shoppingList: shoppingList.value, expenses: expenses.value, infoList: infoList.value, flights, members: members.value };
-            await supabaseClient.from('private_trip_data').upsert({ id: tripId.value, content: payload, updated_at: new Date() });
+            await supabaseClient.from('trip_data').upsert({ id: tripId.value, content: payload, updated_at: new Date() });
             setTimeout(() => syncState.value = 'synced', 800);
         }
 
